@@ -268,6 +268,7 @@ class BPOfferService {
   }
 
   //This must be called only by blockPoolManager
+  //todo 启动BPServiceActor
   void start() {
     for (BPServiceActor actor : bpServices) {
       actor.start();
@@ -608,6 +609,7 @@ class BPOfferService {
     writeLock();
     try {
       if (actor == bpServiceToActive) {
+        //todo 处理cmd请求逻辑
         return processCommandFromActive(cmd, actor);
       } else {
         return processCommandFromStandby(cmd, actor);
@@ -640,6 +642,7 @@ class BPOfferService {
    * @return true if further processing may be required or false otherwise. 
    * @throws IOException
    */
+  //todo 处理cmd命令的逻辑
   private boolean processCommandFromActive(DatanodeCommand cmd,
       BPServiceActor actor) throws IOException {
     final BlockCommand bcmd = 
@@ -654,6 +657,7 @@ class BPOfferService {
           bcmd.getTargets(), bcmd.getTargetStorageTypes());
       dn.metrics.incrBlocksReplicated(bcmd.getBlocks().length);
       break;
+      //todo 删除数据
     case DatanodeProtocol.DNA_INVALIDATE:
       //
       // Some local block(s) are obsolete and can be 
@@ -662,6 +666,7 @@ class BPOfferService {
       Block toDelete[] = bcmd.getBlocks();
       try {
         // using global fsdataset
+        //todo datanode删除数据的逻辑
         dn.getFSDataset().invalidate(bcmd.getBlockPoolId(), toDelete);
       } catch(IOException e) {
         // Exceptions caught here are not expected to be disk-related.

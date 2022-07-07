@@ -90,6 +90,7 @@ public class Block implements Writable, Comparable<Block> {
     return m.matches() ? Long.parseLong(m.group(1)) : 0;
   }
 
+  //todo block的唯一标识
   private long blockId;
   private long numBytes;
   private long generationStamp;

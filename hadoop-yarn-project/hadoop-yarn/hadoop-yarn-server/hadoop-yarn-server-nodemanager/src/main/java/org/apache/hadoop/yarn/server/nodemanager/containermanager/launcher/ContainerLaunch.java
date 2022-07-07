@@ -565,6 +565,7 @@ public class ContainerLaunch implements Callable<Integer> {
       line();
     }
 
+    //todo 通过shell启动container
     @Override
     public void command(List<String> command) {
       line("exec /bin/bash -c \"", StringUtils.join(" ", command), "\"");

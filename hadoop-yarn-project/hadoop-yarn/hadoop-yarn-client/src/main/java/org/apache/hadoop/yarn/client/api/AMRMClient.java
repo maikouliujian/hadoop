@@ -44,6 +44,7 @@ import com.google.common.collect.ImmutableList;
 
 @InterfaceAudience.Public
 @InterfaceStability.Stable
+//todo AMRMClient
 public abstract class AMRMClient<T extends AMRMClient.ContainerRequest> extends
     AbstractService {
   private static final Log LOG = LogFactory.getLog(AMRMClient.class);
@@ -59,6 +60,7 @@ public abstract class AMRMClient<T extends AMRMClient.ContainerRequest> extends
    */
   @Public
   public static <T extends ContainerRequest> AMRMClient<T> createAMRMClient() {
+    //todo AMRMClient
     AMRMClient<T> client = new AMRMClientImpl<T>();
     return client;
   }

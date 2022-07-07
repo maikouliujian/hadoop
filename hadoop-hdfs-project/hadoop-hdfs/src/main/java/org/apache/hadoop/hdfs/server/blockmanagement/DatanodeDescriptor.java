@@ -592,6 +592,7 @@ public class DatanodeDescriptor extends DatanodeInfo {
   /**
    * Store block invalidation work.
    */
+  //todo 添加无效block到datanode中
   void addBlocksToBeInvalidated(List<Block> blocklist) {
     assert(blocklist != null && blocklist.size() > 0);
     synchronized (invalidateBlocks) {
@@ -632,6 +633,7 @@ public class DatanodeDescriptor extends DatanodeInfo {
   /**
    * Remove the specified number of blocks to be invalidated
    */
+  //todo 获取要删除的block
   public Block[] getInvalidateBlocks(int maxblocks) {
     synchronized (invalidateBlocks) {
       Block[] deleteList = invalidateBlocks.pollToArray(new Block[Math.min(

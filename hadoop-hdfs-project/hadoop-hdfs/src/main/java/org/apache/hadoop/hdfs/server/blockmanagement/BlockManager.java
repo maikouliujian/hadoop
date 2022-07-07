@@ -1147,6 +1147,7 @@ public class BlockManager {
     if (!namesystem.isPopulatingReplQueues()) {
       return;
     }
+    //todo 添加无效的block
     invalidateBlocks.add(block, datanode, true);
   }
 
@@ -1344,6 +1345,7 @@ public class BlockManager {
    * @param nodesToProcess number of datanodes to schedule deletion work
    * @return total number of block for deletion
    */
+  //todo 执行invalidateBlocks的删除工作
   int computeInvalidateWork(int nodesToProcess) {
     final List<DatanodeInfo> nodes = invalidateBlocks.getDatanodes();
     Collections.shuffle(nodes);
@@ -1905,6 +1907,7 @@ public class BlockManager {
         // ordinary block reports.  This shortens restart times.
         processFirstBlockReport(storageInfo, newReport);
       } else {
+        //todo 处理上报信息，得到无效block
         invalidatedBlocks = processReport(storageInfo, newReport, context);
       }
       
@@ -1994,6 +1997,7 @@ public class BlockManager {
     Collection<Block> toInvalidate = new LinkedList<Block>();
     Collection<BlockToMarkCorrupt> toCorrupt = new LinkedList<BlockToMarkCorrupt>();
     Collection<StatefulBlockInfo> toUC = new LinkedList<StatefulBlockInfo>();
+    //todo 处理block信息
     reportDiff(storageInfo, report,
         toAdd, toRemove, toInvalidate, toCorrupt, toUC);
 
@@ -2020,6 +2024,7 @@ public class BlockManager {
           "reported.", strBlockReportId, maxNumBlocksToLog, numBlocksLogged);
     }
     for (Block b : toInvalidate) {
+      //todo 添加到无效的block
       addToInvalidates(b, node);
     }
     for (BlockToMarkCorrupt b : toCorrupt) {
@@ -2163,6 +2168,7 @@ public class BlockManager {
     // scan the report and process newly reported blocks
     for (BlockReportReplica iblk : newReport) {
       ReplicaState iState = iblk.getState();
+      //todo 处理block 信息
       BlockInfoContiguous storedBlock = processReportedBlock(storageInfo,
           iblk, iState, toAdd, toInvalidate, toCorrupt, toUC);
 
@@ -2213,11 +2219,12 @@ public class BlockManager {
    * @return the up-to-date stored block, if it should be kept.
    *         Otherwise, null.
    */
+  //todo 处理block副本，将要上报给datanode
   private BlockInfoContiguous processReportedBlock(
       final DatanodeStorageInfo storageInfo,
       final Block block, final ReplicaState reportedState, 
       final Collection<BlockInfoContiguous> toAdd,
-      final Collection<Block> toInvalidate, 
+      final Collection<Block> toInvalidate, //todo 无效节点
       final Collection<BlockToMarkCorrupt> toCorrupt,
       final Collection<StatefulBlockInfo> toUC) {
     
@@ -2241,6 +2248,7 @@ public class BlockManager {
     if(storedBlock == null) {
       // If blocksMap does not contain reported block id,
       // the replica should be removed from the data-node.
+      //todo 找到要删除的block
       toInvalidate.add(new Block(block));
       return null;
     }
@@ -2884,6 +2892,7 @@ public class BlockManager {
       LOG.info("Decreasing replication from " + oldRepl + " to " + newRepl
           + " for " + src);
       for(Block b : blocks) {
+        //todo 减少副本
         processOverReplicatedBlock(b, newRepl, null, null);
       }
     } else { // replication factor is increased
@@ -2927,6 +2936,7 @@ public class BlockManager {
         }
       }
     }
+    //todo 选择过量的副本
     chooseExcessReplicates(nonExcess, block, replication, 
         addedNode, delNodeHint);
   }
@@ -2943,6 +2953,7 @@ public class BlockManager {
         bc.getStoragePolicyID());
     final List<StorageType> excessTypes = storagePolicy.chooseExcess(
         replication, DatanodeStorageInfo.toStorageTypes(nonExcess));
+    //todo 选择出要删除的副本
     List<DatanodeStorageInfo> replicasToDelete = blockplacement
         .chooseReplicasToDelete(nonExcess, replication, excessTypes,
             addedNode, delNodeHint);
@@ -2965,6 +2976,7 @@ public class BlockManager {
     // should be deleted.  Items are removed from the invalidate list
     // upon giving instructions to the datanodes.
     //
+    //todo 添加到无效的block中
     addToInvalidates(b, chosen.getDatanodeDescriptor());
     blockLog.debug("BLOCK* chooseExcessReplicates: "
         + "({}, {}) is added to invalidated blocks set", chosen, b);
@@ -3466,6 +3478,7 @@ public class BlockManager {
           invalidateBlocks.remove(dn);
           return 0;
         }
+        //todo 处理无效block
         toInvalidate = invalidateBlocks.invalidateWork(dnDescriptor);
         
         if (toInvalidate == null) {
@@ -3628,6 +3641,7 @@ public class BlockManager {
         try {
           // Process replication work only when active NN is out of safe mode.
           if (namesystem.isPopulatingReplQueues()) {
+            //todo 执行副本相关操作，如增删副本
             computeDatanodeWork();
             processPendingReplications();
             rescanPostponedMisreplicatedBlocks();
@@ -3686,6 +3700,7 @@ public class BlockManager {
     } finally {
       namesystem.writeUnlock();
     }
+    //todo 计算要删除副本数
     workFound += this.computeInvalidateWork(nodesToProcess);
     return workFound;
   }

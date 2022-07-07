@@ -2244,6 +2244,7 @@ public class DataNode extends ReconfigurableBase
    *  If this thread is specifically interrupted, it will stop waiting.
    */
   public void runDatanodeDaemon() throws IOException {
+    //todo 启动后台线程
     blockPoolManager.startAll();
 
     // start dataXceiveServer
@@ -2347,6 +2348,7 @@ public class DataNode extends ReconfigurableBase
       SecureResources resources) throws IOException {
     DataNode dn = instantiateDataNode(args, conf, resources);
     if (dn != null) {
+      //todo 启动后台线程
       dn.runDatanodeDaemon();
     }
     return dn;

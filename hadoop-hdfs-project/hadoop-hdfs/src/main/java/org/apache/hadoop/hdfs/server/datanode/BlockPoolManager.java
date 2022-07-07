@@ -129,6 +129,7 @@ class BlockPoolManager {
             @Override
             public Object run() throws Exception {
               for (BPOfferService bpos : offerServices) {
+                //todo 启动BPOfferService
                 bpos.start();
               }
               return null;

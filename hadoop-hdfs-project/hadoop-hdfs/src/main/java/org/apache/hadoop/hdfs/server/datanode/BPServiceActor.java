@@ -399,6 +399,7 @@ class BPServiceActor implements Runnable {
         .getVolumeFailureSummary();
     int numFailedVolumes = volumeFailureSummary != null ?
         volumeFailureSummary.getFailedStorageLocations().length : 0;
+    //todo 向namenode发送心跳
     return bpNamenode.sendHeartbeat(bpRegistration,
         reports,
         dn.getFSDataset().getCacheCapacity(),
@@ -497,6 +498,7 @@ class BPServiceActor implements Runnable {
           // -- Bytes remaining
           //
           if (!dn.areHeartbeatsDisabledForTests()) {
+            //todo datanode向namenode发送心跳，获取心跳resp，其中包含上报block cmds
             HeartbeatResponse resp = sendHeartBeat();
             assert resp != null;
             dn.getMetrics().addHeartbeat(scheduler.monotonicNow() - startTime);
@@ -516,6 +518,7 @@ class BPServiceActor implements Runnable {
             }
 
             long startProcessCommands = monotonicNow();
+            //todo 处理上报的cmd
             if (!processCommand(resp.getCommands()))
               continue;
             long endProcessCommands = monotonicNow();
@@ -532,6 +535,7 @@ class BPServiceActor implements Runnable {
         }
 
         List<DatanodeCommand> cmds = blockReport();
+        //todo 处理cmd命令逻辑
         processCommand(cmds == null ? null : cmds.toArray(new DatanodeCommand[cmds.size()]));
 
         DatanodeCommand cmd = cacheReport();
@@ -634,6 +638,7 @@ class BPServiceActor implements Runnable {
         // init stuff
         try {
           // setup storage
+          //todo 连接namenode
           connectToNNAndHandshake();
           break;
         } catch (IOException ioe) {
@@ -656,6 +661,7 @@ class BPServiceActor implements Runnable {
 
       while (shouldRun()) {
         try {
+          //todo 启动心跳服务
           offerService();
         } catch (Exception ex) {
           LOG.error("Exception in BPOfferService for " + this, ex);
@@ -690,6 +696,7 @@ class BPServiceActor implements Runnable {
     if (cmds != null) {
       for (DatanodeCommand cmd : cmds) {
         try {
+          //todo 处理cmd请求逻辑
           if (bpos.processCommandFromActor(cmd, this) == false) {
             return false;
           }

@@ -716,6 +716,7 @@ public class ContainerManagerImpl extends CompositeService implements
         verifyAndGetContainerTokenIdentifier(request.getContainerToken(),
           containerTokenIdentifier);
         containerId = containerTokenIdentifier.getContainerID();
+        //todo 启动container
         startContainerInternal(nmTokenIdentifier, containerTokenIdentifier,
           request);
         succeededContainers.add(containerId);
