@@ -211,6 +211,7 @@ public class RamDiskReplicaLruTracker extends RamDiskReplicaTracker {
     }
 
     if (deleteSavedCopies) {
+      //todo 删除block file文件
       ramDiskReplicaLru.deleteSavedFiles();
     }
 

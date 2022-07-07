@@ -504,6 +504,7 @@ public class DistributedFileSystem extends FileSystem {
     }.resolve(this, absF);
   }
 
+  //todo hdfs设置副本
   @Override
   public boolean setReplication(Path src, 
                                 final short replication

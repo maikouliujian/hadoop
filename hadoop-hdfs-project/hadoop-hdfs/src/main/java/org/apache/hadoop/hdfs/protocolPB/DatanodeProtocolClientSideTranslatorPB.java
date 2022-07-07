@@ -149,6 +149,7 @@ public class DatanodeProtocolClientSideTranslatorPB implements
     }
     HeartbeatResponseProto resp;
     try {
+      //todo 向namenode发送心跳
       resp = rpcProxy.sendHeartbeat(NULL_CONTROLLER, builder.build());
     } catch (ServiceException se) {
       throw ProtobufHelper.getRemoteException(se);

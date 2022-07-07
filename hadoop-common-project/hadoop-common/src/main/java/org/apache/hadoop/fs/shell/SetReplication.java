@@ -33,6 +33,7 @@ import org.apache.hadoop.fs.PathIOException;
 @InterfaceAudience.Private
 @InterfaceStability.Unstable
 
+//todo hdfs设置副本数api
 class SetReplication extends FsCommand {
   public static void registerCommands(CommandFactory factory) {
     factory.addClass(SetReplication.class, "-setrep");
@@ -84,6 +85,7 @@ class SetReplication extends FsCommand {
     }
     
     if (item.stat.isFile()) {
+      //todo 设置副本
       if (!item.fs.setReplication(item.path, newRep)) {
         throw new IOException("Could not set replication for: " + item);
       }

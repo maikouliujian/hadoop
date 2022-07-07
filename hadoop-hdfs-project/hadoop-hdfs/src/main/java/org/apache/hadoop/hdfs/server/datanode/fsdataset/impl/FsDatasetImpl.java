@@ -1896,11 +1896,13 @@ class FsDatasetImpl implements FsDatasetSpi<FsVolumeImpl> {
    * could lazily garbage-collect the block, but why bother?
    * just get rid of it.
    */
+  //todo 删除block逻辑
   @Override // FsDatasetSpi
   public void invalidate(String bpid, Block invalidBlks[]) throws IOException {
     invalidate(bpid, invalidBlks, true);
   }
 
+  //todo 删除block逻辑
   private void invalidate(String bpid, Block[] invalidBlks, boolean async)
       throws IOException {
     final List<String> errors = new ArrayList<String>();
@@ -1920,6 +1922,7 @@ class FsDatasetImpl implements FsDatasetSpi<FsVolumeImpl> {
               + ": GenerationStamp not matched, info=" + info);
           continue;
         }
+        //todo block file
         f = info.getBlockFile();
         v = (FsVolumeImpl)info.getVolume();
         if (v == null) {
@@ -1951,6 +1954,7 @@ class FsDatasetImpl implements FsDatasetSpi<FsVolumeImpl> {
           if (!replicaInfo.getIsPersisted()) {
             datanode.getMetrics().incrRamDiskBlocksDeletedBeforeLazyPersisted();
           }
+          //todo 执行ramDiskReplicaTracker删除逻辑
           ramDiskReplicaTracker.discardReplica(replicaInfo.getBlockPoolId(),
             replicaInfo.getBlockId(), true);
         }
@@ -1969,6 +1973,7 @@ class FsDatasetImpl implements FsDatasetSpi<FsVolumeImpl> {
         // enough.
         // It's ok to unlink the block file before the uncache operation
         // finishes.
+        //todo 触发磁盘删除数据逻辑
         if (async) {
           asyncDiskService.deleteAsync(v.obtainReference(), f,
               FsDatasetUtil.getMetaFile(f, invalidBlks[i].getGenerationStamp()),

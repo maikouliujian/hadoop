@@ -134,6 +134,7 @@ public class FSDirAttrOp {
   static boolean setReplication(
       FSDirectory fsd, BlockManager bm, String src, final short replication)
       throws IOException {
+    //todo 校验副本数
     bm.verifyReplication(src, replication, null);
     final boolean isFile;
     FSPermissionChecker pc = fsd.getPermissionChecker();
@@ -146,11 +147,14 @@ public class FSDirAttrOp {
       }
 
       final short[] blockRepls = new short[2]; // 0: old, 1: new
+      //todo 修改副本
       final Block[] blocks = unprotectedSetReplication(fsd, src, replication,
                                                        blockRepls);
       isFile = blocks != null;
       if (isFile) {
+        //todo 记录EditLog
         fsd.getEditLog().logSetReplication(src, replication);
+        //todo 执行副本修改
         bm.setReplication(blockRepls[0], blockRepls[1], src, blocks);
       }
     } finally {

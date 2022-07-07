@@ -111,6 +111,7 @@ public class DatanodeProtocolServerSideTranslatorPB implements
       VolumeFailureSummary volumeFailureSummary =
           request.hasVolumeFailureSummary() ? PBHelper.convertVolumeFailureSummary(
               request.getVolumeFailureSummary()) : null;
+      //todo 向namenode发送心跳
       response = impl.sendHeartbeat(PBHelper.convert(request.getRegistration()),
           report, request.getCacheCapacity(), request.getCacheUsed(),
           request.getXmitsInProgress(),
@@ -168,6 +169,7 @@ public class DatanodeProtocolServerSideTranslatorPB implements
           blocks);
     }
     try {
+      //todo block信息上报cmd
       cmd = impl.blockReport(PBHelper.convert(request.getRegistration()),
           request.getBlockPoolId(), report,
           request.hasContext() ?

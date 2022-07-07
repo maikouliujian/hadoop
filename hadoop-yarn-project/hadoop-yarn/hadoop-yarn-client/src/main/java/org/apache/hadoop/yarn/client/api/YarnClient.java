@@ -69,6 +69,7 @@ public abstract class YarnClient extends AbstractService {
 
   /**
    * Create a new instance of YarnClient.
+   * todo 初始化 YarnClient
    */
   @Public
   public static YarnClient createYarnClient() {

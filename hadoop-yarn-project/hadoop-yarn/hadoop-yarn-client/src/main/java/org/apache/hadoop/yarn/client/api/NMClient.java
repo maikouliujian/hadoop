@@ -45,6 +45,7 @@ public abstract class NMClient extends AbstractService {
    */
   @Public
   public static NMClient createNMClient() {
+    //todo 创建nodemanager client
     NMClient client = new NMClientImpl();
     return client;
   }

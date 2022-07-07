@@ -1416,8 +1416,10 @@ public class DatanodeManager {
               pendingList));
         }
         //check block invalidation
+        //todo 获取发出请求的datanode要删除的block
         Block[] blks = nodeinfo.getInvalidateBlocks(blockInvalidateLimit);
         if (blks != null) {
+          //todo 构建要删除block的cmd
           cmds.add(new BlockCommand(DatanodeProtocol.DNA_INVALIDATE,
               blockPoolId, blks));
         }

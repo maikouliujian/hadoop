@@ -1900,6 +1900,7 @@ public class DFSClient implements java.io.Closeable, RemotePeerFactory,
       throws IOException {
     TraceScope scope = getPathTraceScope("setReplication", src);
     try {
+      //todo namenode设置副本
       return namenode.setReplication(src, replication);
     } catch(RemoteException re) {
       throw re.unwrapRemoteException(AccessControlException.class,

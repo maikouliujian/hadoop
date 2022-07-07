@@ -192,7 +192,7 @@ class InvalidateBlocks {
     if (set.isEmpty()) {
       remove(dn);
     }
-
+    //todo 添加无效block到datanode中
     dn.addBlocksToBeInvalidated(toInvalidate);
     numBlocks -= toInvalidate.size();
     return toInvalidate;

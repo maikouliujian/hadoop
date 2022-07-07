@@ -38,6 +38,7 @@ import org.apache.hadoop.fs.shell.find.Find;
 // functionality to act as a registry for fs commands.  currently it's being
 // used to implement unnecessary abstract methods in the base class
 
+//todo hdfs cmd 总入口
 abstract public class FsCommand extends Command {
   /**
    * Register the command classes used by the fs subcommand

@@ -173,6 +173,7 @@ public class WebHdfsHandler extends SimpleChannelInboundHandler<HttpRequest> {
 
     final String nnId = params.namenodeId();
     final int bufferSize = params.bufferSize();
+    //todo 副本数
     final short replication = params.replication();
     final long blockSize = params.blockSize();
     final FsPermission permission = params.permission();

@@ -55,6 +55,7 @@ import org.apache.hadoop.security.token.Token;
 import org.apache.hadoop.security.token.delegation.AbstractDelegationTokenIdentifier;
 import org.apache.hadoop.util.Progressable;
 
+//todo hdfs api
 @InterfaceAudience.Private
 @InterfaceStability.Evolving
 public class Hdfs extends AbstractFileSystem {
@@ -354,6 +355,7 @@ public class Hdfs extends AbstractFileSystem {
     dfs.setPermission(getUriPath(f), permission);
   }
 
+  //todo 修改副本
   @Override
   public boolean setReplication(Path f, short replication)
     throws IOException, UnresolvedLinkException {

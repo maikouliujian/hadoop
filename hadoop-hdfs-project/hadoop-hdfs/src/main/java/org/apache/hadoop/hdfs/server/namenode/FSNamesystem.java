@@ -1978,6 +1978,7 @@ public class FSNamesystem implements Namesystem, FSNamesystemMBean,
    * @return true if successful; 
    *         false if file does not exist or is a directory
    */
+  //todo 修改副本
   boolean setReplication(final String src, final short replication)
       throws IOException {
     final String operationName = "setReplication";
@@ -4520,6 +4521,7 @@ public class FSNamesystem implements Namesystem, FSNamesystemMBean,
       //get datanode commands
       final int maxTransfer = blockManager.getMaxReplicationStreams()
           - xmitsInProgress;
+      //todo 心跳时上报block cmds
       DatanodeCommand[] cmds = blockManager.getDatanodeManager().handleHeartbeat(
           nodeReg, reports, blockPoolId, cacheCapacity, cacheUsed,
           xceiverCount, maxTransfer, failedVolumes, volumeFailureSummary);

@@ -232,6 +232,7 @@ public class YarnClientImpl extends YarnClient {
 
   @Override
   public ApplicationId
+          //todo提交Application
       submitApplication(ApplicationSubmissionContext appContext)
           throws YarnException, IOException {
     ApplicationId applicationId = appContext.getApplicationId();
@@ -250,6 +251,7 @@ public class YarnClientImpl extends YarnClient {
     }
 
     //TODO: YARN-1763:Handle RM failovers during the submitApplication call.
+        //todo 通过rmClient提交 SubmitApplicationRequest
     rmClient.submitApplication(request);
 
     int pollCount = 0;

@@ -296,6 +296,7 @@ public class LinuxContainerExecutor extends ContainerExecutor {
         if (LOG.isDebugEnabled()) {
           LOG.debug("launchContainer: " + Arrays.toString(commandArray));
         }
+        //todo shell启动命令
         shExec.execute();
         if (LOG.isDebugEnabled()) {
           logOutput(shExec.getOutput());

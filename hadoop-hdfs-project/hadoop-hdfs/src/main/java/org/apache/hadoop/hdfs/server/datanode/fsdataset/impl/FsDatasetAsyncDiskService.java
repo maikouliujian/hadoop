@@ -283,6 +283,7 @@ class FsDatasetAsyncDiskService {
 
       File newBlockFile = new File(trashDirectory, blockFile.getName());
       File newMetaFile = new File(trashDirectory, metaFile.getName());
+      //todo 删除文件到回收站，其实是对文件进行rename
       return (blockFile.renameTo(newBlockFile) &&
               metaFile.renameTo(newMetaFile));
     }
@@ -291,7 +292,7 @@ class FsDatasetAsyncDiskService {
     public void run() {
       long dfsBytes = blockFile.length() + metaFile.length();
       boolean result;
-
+      //todo 删除文件 or 删除文件到回收站，其实是对文件进行rename
       result = (trashDirectory == null) ? deleteFiles() : moveFiles();
 
       if (!result) {

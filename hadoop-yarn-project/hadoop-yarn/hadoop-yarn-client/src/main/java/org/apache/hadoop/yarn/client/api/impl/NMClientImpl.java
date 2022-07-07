@@ -196,6 +196,7 @@ public class NMClientImpl extends NMClient {
         list.add(scRequest);
         StartContainersRequest allRequests =
             StartContainersRequest.newInstance(list);
+        //todo 启动所有的containers请求
         StartContainersResponse response =
             proxy
                 .getContainerManagementProtocol().startContainers(allRequests);
