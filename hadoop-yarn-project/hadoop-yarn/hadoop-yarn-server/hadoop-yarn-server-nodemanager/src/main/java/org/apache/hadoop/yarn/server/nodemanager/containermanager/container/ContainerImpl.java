@@ -108,6 +108,7 @@ public class ContainerImpl implements Container {
     new HashMap<LocalResourceRequest,List<String>>();
   private final Map<Path,List<String>> localizedResources =
     new HashMap<Path,List<String>>();
+  //todo container中缓存的
   private final List<LocalResourceRequest> publicRsrcs =
     new ArrayList<LocalResourceRequest>();
   private final List<LocalResourceRequest> privateRsrcs =
@@ -610,6 +611,7 @@ public class ContainerImpl implements Container {
         try {
           for (Map.Entry<String,LocalResource> rsrc : cntrRsrc.entrySet()) {
             try {
+              //todo 本地资源获取逻辑
               LocalResourceRequest req =
                   new LocalResourceRequest(rsrc.getValue());
               List<String> links = container.pendingResources.get(req);

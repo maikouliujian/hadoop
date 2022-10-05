@@ -75,6 +75,7 @@ public class NodeManager implements ContainerManagementProtocol {
   Resource used = recordFactory.newRecordInstance(Resource.class);
 
   final ResourceTrackerService resourceTrackerService;
+  //todo 一个nodemanager中含有多个container
   final Map<ApplicationId, List<Container>> containers = 
     new HashMap<ApplicationId, List<Container>>();
   

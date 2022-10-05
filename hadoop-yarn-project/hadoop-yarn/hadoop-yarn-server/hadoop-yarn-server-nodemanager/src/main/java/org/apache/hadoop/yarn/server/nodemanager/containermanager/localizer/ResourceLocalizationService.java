@@ -891,6 +891,7 @@ public class ResourceLocalizationService extends CompositeService
    * access to user's credentials. One {@link LocalizerRunner} per localizerId.
    * 
    */
+
   class LocalizerRunner extends Thread {
 
     final LocalizerContext context;

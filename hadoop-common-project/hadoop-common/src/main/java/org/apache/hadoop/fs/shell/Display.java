@@ -118,7 +118,8 @@ class Display extends FsCommand {
   /**
    * Same behavior as "-cat", but handles zip and TextRecordInputStream
    * and Avro encodings. 
-   */ 
+   */
+  //todo text命令
   public static class Text extends Cat {
     public static final String NAME = "text";
     public static final String USAGE = Cat.USAGE;

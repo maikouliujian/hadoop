@@ -342,6 +342,7 @@ public abstract class FileInputFormat<K, V> implements InputFormat<K, V> {
         } else {
           blkLocations = fs.getFileBlockLocations(file, 0, length);
         }
+        //todo 是否可切片
         if (isSplitable(fs, path)) {
           long blockSize = file.getBlockSize();
           long splitSize = computeSplitSize(goalSize, minSize, blockSize);

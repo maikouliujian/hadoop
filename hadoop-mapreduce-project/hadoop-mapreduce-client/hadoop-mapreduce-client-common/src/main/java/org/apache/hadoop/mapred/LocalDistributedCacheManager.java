@@ -125,6 +125,7 @@ class LocalDistributedCacheManager {
       Path destPath = localDirAllocator.getLocalPathForWrite(".", conf);
       Map<LocalResource, Future<Path>> resourcesToPaths = Maps.newHashMap();
       for (LocalResource resource : localResources.values()) {
+        //todo localResources下载，从hdfs到nodemanager本地磁盘
         Callable<Path> download =
             new FSDownload(localFSFileContext, ugi, conf, new Path(destPath,
                 Long.toString(uniqueNumberGenerator.incrementAndGet())),
