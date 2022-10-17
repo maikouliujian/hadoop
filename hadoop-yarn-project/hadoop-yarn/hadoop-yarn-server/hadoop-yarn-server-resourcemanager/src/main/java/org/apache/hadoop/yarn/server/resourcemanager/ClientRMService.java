@@ -526,6 +526,7 @@ public class ClientRMService extends AbstractService implements
     return response;
   }
 
+  //todo 向yarn提交程序的入口
   @Override
   public SubmitApplicationResponse submitApplication(
       SubmitApplicationRequest request) throws YarnException {

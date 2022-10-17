@@ -117,7 +117,7 @@ import com.google.common.annotations.VisibleForTesting;
 public class YarnClientImpl extends YarnClient {
 
   private static final Log LOG = LogFactory.getLog(YarnClientImpl.class);
-
+  //TODO client和rm通信协议
   protected ApplicationClientProtocol rmClient;
   protected long submitPollIntervalMillis;
   private long asyncApiPollIntervalMillis;
