@@ -49,7 +49,10 @@ import com.google.common.annotations.VisibleForTesting;
 public class AsyncDispatcher extends AbstractService implements Dispatcher {
 
   private static final Log LOG = LogFactory.getLog(AsyncDispatcher.class);
-
+  /*************************************************
+   * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+   *  注释： 存放封装了各类事件的 Event 对象的阻塞队列
+   */
   private final BlockingQueue<Event> eventQueue;
   private volatile int lastEventQueueSizeLogged = 0;
   private volatile int lastEventDetailsQueueSizeLogged = 0;
@@ -58,7 +61,7 @@ public class AsyncDispatcher extends AbstractService implements Dispatcher {
   //Configuration for control the details queue event printing.
   private int detailsInterval;
   private boolean printTrigger = false;
-
+  // TODO 注释： 配置标志，用于启用/禁用在停止功能上排空调度程序的事件。
   // Configuration flag for enabling/disabling draining dispatcher's events on
   // stop functionality.
   private volatile boolean drainEventsOnStop = false;
@@ -68,15 +71,26 @@ public class AsyncDispatcher extends AbstractService implements Dispatcher {
   // Race condition happens if dispatcher thread sets drained to true between
   // handler setting drained to false and enqueueing event. YARN-3878 decided
   // to ignore it because of its tiny impact. Also see YARN-5436.
+  // TODO 注释： 表示所有剩余的已停止调度事件已经被处理
   private volatile boolean drained = true;
+  // TODO 注释： 等待排空的对象（锁）
   private final Object waitForDrained = new Object();
 
   // For drainEventsOnStop enabled only, block newly coming events into the
   // queue while stopping.
+  // TODO 注释： 仅当drainEventsOnStop为true时可用，如果为true表示在停止时会阻塞新来的事件加入队列
   private volatile boolean blockNewEvents = false;
+  /*************************************************
+   * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+   *  注释： GenericEventHandler 负责往 eventQueue 里放入 event
+   */
   private final EventHandler<Event> handlerInstance = new GenericEventHandler();
-
+  /*************************************************
+   * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+   *  注释： 事件处理线程 = 处理所有事件的线程
+   */
   private Thread eventHandlingThread;
+  // TODO 注释： 存放不同事件对应的事件处理器的映射表
   protected final Map<Class<? extends Enum>, EventHandler> eventDispatchers;
   private boolean exitOnDispatchException = true;
 
@@ -109,10 +123,13 @@ public class AsyncDispatcher extends AbstractService implements Dispatcher {
       @Override
       public void run() {
         while (!stopped && !Thread.currentThread().isInterrupted()) {
+          //todo 【drained:排空】
           drained = eventQueue.isEmpty();
           // blockNewEvents is only set when dispatcher is draining to stop,
           // adding this check is to avoid the overhead of acquiring the lock
           // and calling notify every time in the normal run of the loop.
+          // TODO 注释： blockNewEvents 仅在 dispatcher 排空、停止时设置为 true，
+          // TODO 注释： 所以此检查是为了避免每次在循环的正常运行中获取锁和调用 notify 的开销。
           if (blockNewEvents) {
             synchronized (waitForDrained) {
               if (drained) {
@@ -130,6 +147,11 @@ public class AsyncDispatcher extends AbstractService implements Dispatcher {
             return;
           }
           if (event != null) {
+            /*************************************************
+             * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+             *  注释： 分发处理该有效事件 Event
+             *  从事先注册的 Event + EventHandler 中，根据 Event 找到对应的 EventHandler
+             */
             dispatch(event);
             if (printTrigger) {
               //Log the latest dispatch event type
@@ -216,6 +238,10 @@ public class AsyncDispatcher extends AbstractService implements Dispatcher {
     try{
       EventHandler handler = eventDispatchers.get(type);
       if(handler != null) {
+        /*************************************************
+         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释： 根据事件类型，调用对应的 Handler 执行处理
+         */
         handler.handle(event);
       } else {
         throw new Exception("No handler for registered for " + type);
@@ -243,8 +269,13 @@ public class AsyncDispatcher extends AbstractService implements Dispatcher {
     EventHandler<Event> registeredHandler = (EventHandler<Event>)
     eventDispatchers.get(eventType);
     LOG.info("Registering " + eventType + " for " + handler.getClass());
+    /*************************************************
+     * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+     *  注释： 进行 EventType 和 EventHandler 之间的映射注册！
+     */
     if (registeredHandler == null) {
       eventDispatchers.put(eventType, handler);
+      // TODO 注释： 如果不是 MultiListenerHandler 类型，就将老的取出和参数 handler 一起加到新建的 multiHandler
     } else if (!(registeredHandler instanceof MultiListenerHandler)){
       /* for multiple listeners of an event add the multiple listener handler */
       MultiListenerHandler multiHandler = new MultiListenerHandler();
@@ -252,6 +283,7 @@ public class AsyncDispatcher extends AbstractService implements Dispatcher {
       multiHandler.addHandler(handler);
       eventDispatchers.put(eventType, multiHandler);
     } else {
+      // TODO 注释： 已经是MultiListenerHandler，直接添加
       /* already a multilistener, just add to it */
       MultiListenerHandler multiHandler
       = (MultiListenerHandler) registeredHandler;
