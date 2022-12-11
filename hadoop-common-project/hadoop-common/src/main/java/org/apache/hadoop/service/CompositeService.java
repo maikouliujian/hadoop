@@ -46,7 +46,7 @@ public class CompositeService extends AbstractService {
    * its init() or start() operations, it will have stop() called on it.
    */
   protected static final boolean STOP_ONLY_STARTED_SERVICES = false;
-
+  //todo 一个service是可能由很多子service组成的
   private final List<Service> serviceList = new ArrayList<Service>();
 
   public CompositeService(String name) {

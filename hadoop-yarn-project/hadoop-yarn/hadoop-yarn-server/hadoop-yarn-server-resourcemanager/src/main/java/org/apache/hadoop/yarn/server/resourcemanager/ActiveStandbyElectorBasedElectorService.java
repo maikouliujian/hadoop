@@ -72,41 +72,63 @@ public class ActiveStandbyElectorBasedElectorService extends AbstractService
     this.rm = rm;
   }
 
+  /*************************************************
+   * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+   *  注释： 初始化，准备用来做选举的各种条件
+   *  1、选举实例对象
+   *  2、zk 链接
+   *  3、选举过程中要创建的 znode 的路径
+   */
   @Override
   protected void serviceInit(Configuration conf)
       throws Exception {
     conf = conf instanceof YarnConfiguration
         ? conf
         : new YarnConfiguration(conf);
-
+    // TODO 注释： yarn.resourcemanager.zk-address
     String zkQuorum = conf.get(YarnConfiguration.RM_ZK_ADDRESS);
     if (zkQuorum == null) {
       throw new YarnRuntimeException("Embedded automatic failover " +
           "is enabled, but " + YarnConfiguration.RM_ZK_ADDRESS +
           " is not set");
     }
-
+    // TODO 注释：  创建一个 znode 节点的数据: clusterID, rmID
     String rmId = HAUtil.getRMHAId(conf);
     String clusterId = YarnConfiguration.getClusterId(conf);
+    // TODO 注释： 这个对象，就是对应的 RM 在 zookeeper 的 znode 的数据
     localActiveNodeInfo = createActiveNodeInfo(clusterId, rmId);
-
+    /*************************************************
+     * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+     *  注释： 构建选举 znode 节点
+     *  yarn.resourcemanager.ha.automatic-failover.zk-base-path = /yarn-leader-election
+     *  electionZNode = /yarn-leader-election/clusterID
+     *  zkBasePath = /yarn-leader-election
+     */
     String zkBasePath = conf.get(YarnConfiguration.AUTO_FAILOVER_ZK_BASE_PATH,
         YarnConfiguration.DEFAULT_AUTO_FAILOVER_ZK_BASE_PATH);
     String electionZNode = zkBasePath + "/" + clusterId;
-
+    // TODO 注释： 超时 10s
+    // TODO 注释： yarn.resourcemanager.ha.automatic-failover.zk-timeout-ms = 10000
     zkSessionTimeout = conf.getLong(YarnConfiguration.RM_ZK_TIMEOUT_MS,
         YarnConfiguration.DEFAULT_RM_ZK_TIMEOUT_MS);
 
     List<ACL> zkAcls = ZKCuratorManager.getZKAcls(conf);
     List<ZKUtil.ZKAuthInfo> zkAuths = ZKCuratorManager.getZKAuths(conf);
-
+    // TODO 注释： 默认重试次数：3
     int maxRetryNum =
         conf.getInt(YarnConfiguration.RM_HA_FC_ELECTOR_ZK_RETRIES_KEY, conf
           .getInt(CommonConfigurationKeys.HA_FC_ELECTOR_ZK_OP_RETRIES_KEY,
             CommonConfigurationKeys.HA_FC_ELECTOR_ZK_OP_RETRIES_DEFAULT));
+    /*************************************************
+     * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+     *  注释： 构建选举器
+     *  内部重要的事情：
+     *  zkLockFilePath = /yarn-leader-election/clusterID/ActiveStandbyElectorLock
+     *  zkBreadCrumbPath = /yarn-leader-election/clusterID/ActiveBreadCrumb
+     */
     elector = new ActiveStandbyElector(zkQuorum, (int) zkSessionTimeout,
         electionZNode, zkAcls, zkAuths, this, maxRetryNum, false);
-
+    // TODO 注释： 确保父节点 zkBasePath = /yarn-leader-election 存在
     elector.ensureParentZNode();
     if (!isParentZnodeSafe(clusterId)) {
       notifyFatalError(String.format("invalid data in znode, %s, " +
@@ -119,6 +141,11 @@ public class ActiveStandbyElectorBasedElectorService extends AbstractService
 
   @Override
   protected void serviceStart() throws Exception {
+    /*************************************************
+     * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+     *  注释： 进行选举
+     *  localActiveNodeInfo = clusterID + rmID
+     */
     elector.joinElection(localActiveNodeInfo);
     super.serviceStart();
   }
@@ -206,9 +233,18 @@ public class ActiveStandbyElectorBasedElectorService extends AbstractService
   @SuppressWarnings(value = "unchecked")
   @Override
   public void notifyFatalError(String errorMessage) {
+    /*************************************************
+     * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+     *  注释： 提交一个 RMFatalEvent 事件
+     *  1、你阅读源码的时候，你一定要记住每个 register => RMFatalEventDispatcher
+     *  2、ctrl + shift + F : 全局查找 handle（RMFatalEvent）
+     */
     rm.getRMContext().getDispatcher().getEventHandler().handle(
         new RMFatalEvent(RMFatalEventType.EMBEDDED_ELECTOR_FAILED,
             errorMessage));
+    // RMFatalEvent ===> ResourceManager 的 serviceInit() 方法中，有对应的注册！
+    // TODO 注释： 在创建 AsyncDispatcher 的时候，注册了一个事件： RMFatalEvent => RMFatalEventDispatcher
+    // TODO 注释： 代码转到 RMFatalEventDispatcher 的 handle()
   }
 
   @Override

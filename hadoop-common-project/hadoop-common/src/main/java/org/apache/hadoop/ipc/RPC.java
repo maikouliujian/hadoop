@@ -82,6 +82,7 @@ import org.slf4j.LoggerFactory;
  * All methods in the protocol should throw only IOException.  No field data of
  * the protocol instance is transmitted.
  */
+//todo server的builder入口
 @InterfaceAudience.LimitedPrivate(value = { "Common", "HDFS", "MapReduce", "Yarn" })
 @InterfaceStability.Evolving
 public class RPC {
@@ -217,6 +218,7 @@ public class RPC {
     if (engine == null) {
       Class<?> impl = conf.getClass(ENGINE_PROP+"."+protocol.getName(),
                                     WritableRpcEngine.class);
+      //todo 反射创建
       engine = (RpcEngine)ReflectionUtils.newInstance(impl, conf);
       PROTOCOL_ENGINES.put(protocol, engine);
     }
@@ -849,7 +851,7 @@ public class RPC {
       if (this.instance == null) {
         throw new HadoopIllegalArgumentException("instance is not set");
       }
-      
+      //todo hadoop rpc server入口
       return getProtocolEngine(this.protocol, this.conf).getServer(
           this.protocol, this.instance, this.bindAddress, this.port,
           this.numHandlers, this.numReaders, this.queueSizePerHandler,
@@ -1083,6 +1085,13 @@ public class RPC {
     @Override
     public Writable call(RPC.RpcKind rpcKind, String protocol,
         Writable rpcRequest, long receiveTime) throws Exception {
+      /*************************************************
+       * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+       *  注释：
+       *  两种实现：
+       *  1、WritableRpcInvoker
+       *  2、ProtoBufRpcInvoker
+       */
       return getRpcInvoker(rpcKind).call(this, protocol, rpcRequest,
           receiveTime);
     }

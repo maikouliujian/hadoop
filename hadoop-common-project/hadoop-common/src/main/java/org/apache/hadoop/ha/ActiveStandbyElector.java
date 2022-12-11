@@ -261,8 +261,15 @@ public class ActiveStandbyElector implements StatCallback, StringCallback {
     zkSessionTimeout = zookeeperSessionTimeout;
     zkAcl = acl;
     zkAuthInfo = authInfo;
+    // TODO 注释： appClient = ActiveStandbyElectorBasedElectorService
     appClient = app;
     znodeWorkingDir = parentZnodeName;
+    /*************************************************
+     * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+     *  注释： zk 上的 yarn 创建的 znode 节点路径
+     *  zkLockFilePath = /yarn-leader-election/clusterID/ActiveStandbyElectorLock
+     *  zkBreadCrumbPath = /yarn-leader-election/clusterID/ActiveBreadCrumb
+     */
     zkLockFilePath = znodeWorkingDir + "/" + LOCK_FILENAME;
     zkBreadCrumbPath = znodeWorkingDir + "/" + BREADCRUMB_FILENAME;
     this.maxRetryNum = maxRetryNum;
@@ -304,9 +311,15 @@ public class ActiveStandbyElector implements StatCallback, StringCallback {
     appData = new byte[data.length];
     System.arraycopy(data, 0, appData, 0, data.length);
 
+    // TODO 注释： 选举的机制 到 zk 上创建一个代表分布式锁节点。
+    // TODO 注释： 当前节点的数据： appData
     if (LOG.isDebugEnabled()) {
       LOG.debug("Attempting active election for " + this);
     }
+    /*************************************************
+     * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+     *  注释： 选举内部实现
+     */
     joinElectionInternal();
   }
   
@@ -459,6 +472,7 @@ public class ActiveStandbyElector implements StatCallback, StringCallback {
 
   /**
    * interface implementation of Zookeeper callback for create
+   * todo 创建/yarn-leader-election/ActiveStandbyElectorLock成功的回调
    */
   @Override
   public synchronized void processResult(int rc, String path, Object ctx,
@@ -469,28 +483,41 @@ public class ActiveStandbyElector implements StatCallback, StringCallback {
           + " connectionState: " + zkConnectionState +
           "  for " + this);
     }
-
+    // TODO 注释： 如果创建 znode 节点成功
+    // TODO 注释： 两个 RM 同时去创建这个 znode ，必然只有一个能成功！ OK
     Code code = Code.get(rc);
     if (isSuccess(code)) {
       // we successfully created the znode. we are the leader. start monitoring
+      /*************************************************
+       * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+       *  注释： 进入 Active 状态
+       */
       if (becomeActive()) {
         monitorActiveStatus();
       } else {
+        // TODO 注释： 如果切换状态并没有成功，则休息 1s 之后，重新加入选举
         reJoinElectionAfterFailureToBecomeActive();
       }
       return;
     }
+    // TODO 注释： 如果没有执行上面的分支，则意味着，我没有创建 锁节点成功
+    // TODO 注释： 1、之前节点已经存在
+    // TODO 注释： 2、虽然锁节点不存在，但是我也还是没有创建成功
 
+    // TODO 注释： 如果锁节点已经存在，但是自己又没有接收到 OK 的状态码提示
+    // TODO 注释： 证明锁节点是别人创建的，则别人成为 active，自己成为 standby
     if (isNodeExists(code)) {
       if (createRetryCount == 0) {
         // znode exists and we did not retry the operation. so a different
         // instance has created it. become standby and monitor lock.
+        // TODO 注释： 切换到 standby
         becomeStandby();
       }
       // if we had retried then the znode could have been created by our first
       // attempt to the server (that we lost) and this node exists response is
       // for the second attempt. verify this case via ephemeral node owner. this
       // will happen on the callback for monitoring the lock.
+      // TODO 注释： 监听锁节点的 exists 状态
       monitorActiveStatus();
       return;
     }
@@ -533,12 +560,13 @@ public class ActiveStandbyElector implements StatCallback, StringCallback {
       LOG.debug("StatNode result: " + rc + " for path: " + path
           + " connectionState: " + zkConnectionState + " for " + this);
     }
-
+    // TODO 注释： 根据创建锁节点成功与否的状态码来决定成为 active 或者 standby
     Code code = Code.get(rc);
     if (isSuccess(code)) {
       // the following owner check completes verification in case the lock znode
       // creation was retried
       if (stat.getEphemeralOwner() == zkClient.getSessionId()) {
+        // TODO 注释： 切换成为 active
         // we own the lock znode. so we are the leader
         if (!becomeActive()) {
           reJoinElectionAfterFailureToBecomeActive();
@@ -575,7 +603,7 @@ public class ActiveStandbyElector implements StatCallback, StringCallback {
       LOG.warn("Lock monitoring failed because session was lost");
       return;
     }
-
+     //todo 启动一个线程继续重试，避免阻塞主线程
     fatalError(errorMessage);
   }
 
@@ -690,12 +718,18 @@ public class ActiveStandbyElector implements StatCallback, StringCallback {
     // watcher after constructing ZooKeeper, we may miss that event. Instead,
     // we construct the watcher first, and have it block any events it receives
     // before we can set its ZooKeeper reference.
+    // TODO 注释： 监听器
     watcher = new WatcherWithClientRef();
+    /*************************************************
+     * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+     *  注释： 拿到一个 ZooKeeper 客户端
+     */
     ZooKeeper zk = createZooKeeper();
     watcher.setZooKeeperRef(zk);
 
     // Wait for the asynchronous success/failure. This may throw an exception
     // if we don't connect within the session timeout.
+    // TODO 注释： 等待完成和 zk 的链接
     watcher.waitForZKConnectionEvent(zkSessionTimeout);
     
     for (ZKAuthInfo auth : zkAuthInfo) {
@@ -733,6 +767,7 @@ public class ActiveStandbyElector implements StatCallback, StringCallback {
   private void joinElectionInternal() {
     Preconditions.checkState(appData != null,
         "trying to join election without any app data");
+    // TODO 注释： 确保 ZKClient 存在
     if (zkClient == null) {
       if (!reEstablishSession()) {
         fatalError("Failed to reEstablish connection with ZooKeeper");
@@ -742,6 +777,10 @@ public class ActiveStandbyElector implements StatCallback, StringCallback {
 
     createRetryCount = 0;
     wantToBeInElection = true;
+    /*************************************************
+     * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+     *  注释： 创建分布式锁节点！
+     */
     createLockNodeAsync();
   }
 
@@ -850,6 +889,10 @@ public class ActiveStandbyElector implements StatCallback, StringCallback {
       zkClient = null;
       watcher = null;
     }
+    /*************************************************
+     * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+     *  注释： 获取 ZooKeeper 实例
+     */
     zkClient = connectToZooKeeper();
     if (LOG.isDebugEnabled()) {
       LOG.debug("Created new connection for " + this);
@@ -1011,8 +1054,16 @@ public class ActiveStandbyElector implements StatCallback, StringCallback {
   }
 
   private void createLockNodeAsync() {
+    /*************************************************
+     * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+     *  注释： 创建一个选举的临时节点
+     */
     zkClient.create(zkLockFilePath, appData, zkAcl, CreateMode.EPHEMERAL,
         this, zkClient);
+    /*************************************************
+     * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+     *  注释： 当创建成功，会进行回调： processResult()
+     */
   }
 
   private void monitorLockNodeAsync() {
@@ -1177,7 +1228,7 @@ public class ActiveStandbyElector implements StatCallback, StringCallback {
       this.zk = zk;
       hasSetZooKeeper.countDown();
     }
-
+    //todo 监听器的回调
     @Override
     public void process(WatchedEvent event) {
       hasReceivedEvent.countDown();

@@ -955,11 +955,15 @@ public abstract class Server {
 
   /** A RPC extended call queued for handling. */
   private class RpcCall extends Call {
+    // TODO 注释： 该 RpcCall 属于哪个链接发起的
     final Connection connection;  // connection to client
+    // TODO 注释： 请求是什么
     final Writable rpcRequest;    // Serialized Rpc request from client
+    // TODO 注释： 响应是什么
     ByteBuffer rpcResponse;       // the response for this call
 
     private ResponseParams responseParams; // the response params
+    // TODO 注释： RpcCall 处理完成的响应，还没有经过编码的
     private Writable rv;                   // the byte response
 
     RpcCall(RpcCall call) {
@@ -1026,6 +1030,12 @@ public abstract class Server {
       ResponseParams responseParams = new ResponseParams();
 
       try {
+        /*************************************************
+         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释：
+         *  1、call() 就是执行 RPC 请求
+         *  2、value 就是 RPC 请求的返回值
+         */
         value = call(
             rpcKind, connection.protocolName, rpcRequest, timestampNanos);
       } catch (Throwable e) {
@@ -1041,8 +1051,16 @@ public abstract class Server {
         deltaNanos -= details.get(Timing.LOCKEXCLUSIVE, TimeUnit.NANOSECONDS);
         details.set(Timing.LOCKFREE, deltaNanos, TimeUnit.NANOSECONDS);
         startNanos = Time.monotonicNowNanos();
-
+        /*************************************************
+         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释： 设置 RPC 处理结果
+         *  将 RPC 处理结果 设置到 RpcCall 中了
+         */
         setResponseFields(value, responseParams);
+        /*************************************************
+         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释： 发送响应
+         */
         sendResponse();
 
         deltaNanos = Time.monotonicNowNanos() - startNanos;
@@ -1091,6 +1109,7 @@ public abstract class Server {
 
     @Override
     void doResponse(Throwable t, RpcStatusProto status) throws IOException {
+      // TODO 注释： 将响应结果，设置到 RpcCall 中进行保存
       RpcCall call = this;
       if (t != null) {
         if (status == null) {
@@ -1102,12 +1121,17 @@ public abstract class Server {
         call = new RpcCall(this);
         setupResponse(call, status, RpcErrorCodeProto.ERROR_RPC_SERVER,
             null, t.getClass().getName(), StringUtils.stringifyException(t));
+        // TODO 注释： 这句话就是处理返回结果值： call.rv
       } else {
         setupResponse(call, call.responseParams.returnStatus,
             call.responseParams.detailedErr, call.rv,
             call.responseParams.errorClass,
             call.responseParams.error);
       }
+      /*************************************************
+       * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+       *  注释： connection 肯定是属于某一个客户端
+       */
       connection.sendResponse(call);
     }
 
@@ -1206,12 +1230,19 @@ public abstract class Server {
     private boolean isOnAuxiliaryPort;
 
     Listener(int port) throws IOException {
+      /*************************************************
+       *  注释： 启动 NIO 服务端
+       */
       address = new InetSocketAddress(bindAddress, port);
       // Create a new server socket and set to non blocking mode
       acceptChannel = ServerSocketChannel.open();
       acceptChannel.configureBlocking(false);
 
       // Bind the server socket to the local host and port
+       /*************************************************
+       * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+       *  注释： 绑定 端口号
+       */
       bind(acceptChannel.socket(), address, backlogLength, conf, portRangeConfig);
       //Could be an ephemeral port
       this.listenPort = acceptChannel.socket().getLocalPort();
@@ -1219,6 +1250,10 @@ public abstract class Server {
           bindAddress + "/" + this.listenPort);
       // create a selector;
       selector= Selector.open();
+      /*************************************************
+       * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+       *  注释： 初始化 readThreads 个 Reader 线程
+       */
       readers = new Reader[readThreads];
       for (int i = 0; i < readThreads; i++) {
         Reader reader = new Reader(
@@ -1228,6 +1263,10 @@ public abstract class Server {
       }
 
       // Register accepts on the server socket with the selector.
+      /*************************************************
+       * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+       *  注释： 注册 OP_ACCEPT 事件
+       */
       acceptChannel.register(selector, SelectionKey.OP_ACCEPT);
       this.setName("IPC Server listener on " + port);
       this.setDaemon(true);
@@ -1247,6 +1286,10 @@ public abstract class Server {
 
         this.pendingConnections =
             new LinkedBlockingQueue<Connection>(readerPendingConnectionQueue);
+        /*************************************************
+         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释： 初始化 readerSelector
+         */
         this.readSelector = Selector.open();
       }
       
@@ -1268,6 +1311,8 @@ public abstract class Server {
         while (running) {
           SelectionKey key = null;
           try {
+            // TODO_MA 注释： 注册 OP_READ， 从 pendingConnections 中获取刚刚建立链接成功的客户端
+            // TODO_MA 注释： 注册 OP_READ 事件， 读取数据
             // consume as many connections as currently queued to avoid
             // unbridled acceptance of connections that starves the select
             int size = pendingConnections.size();
@@ -1275,6 +1320,11 @@ public abstract class Server {
               Connection conn = pendingConnections.take();
               conn.channel.register(readSelector, SelectionKey.OP_READ, conn);
             }
+            /*************************************************
+             * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+             *  注释：  如果这个 iter 不为空，意味着有 socketChannel 触发了 op_read 事件
+             *  对应的客户端读取数据
+             */
             readSelector.select();
 
             Iterator<SelectionKey> iter = readSelector.selectedKeys().iterator();
@@ -1313,7 +1363,15 @@ public abstract class Server {
        * and update its readSelector before performing the next select
        */
       public void addConnection(Connection conn) throws InterruptedException {
+        /*************************************************
+         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释： 调用reader.addConnection 将其加入到阻塞队列 pendingConnections
+         */
         pendingConnections.put(conn);
+        /*************************************************
+         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释： 调用 wakeup 唤醒了 reader 在 doRunLoop 方法中的 readSelector.select 阻塞
+         */
         readSelector.wakeup();
       }
 
@@ -1328,15 +1386,20 @@ public abstract class Server {
         }
       }
     }
-
+    /*************************************************
+     * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+     *  注释： Listener 的 Run 方法
+     */
     @Override
     public void run() {
       LOG.info(Thread.currentThread().getName() + ": starting");
       SERVER.set(Server.this);
+      // TODO 注释： 启动定时任务，用来检测闲置的 Connection
       connectionManager.startIdleScan();
       while (running) {
         SelectionKey key = null;
         try {
+          // TODO 注释： 如果有客户端发起链接请求过来。则一定有 OP_ACCEPT 的响应
           getSelector().select();
           Iterator<SelectionKey> iter = getSelector().selectedKeys().iterator();
           while (iter.hasNext()) {
@@ -1344,6 +1407,7 @@ public abstract class Server {
             iter.remove();
             try {
               if (key.isValid()) {
+                // TODO 注释： 客户端发起的是链接请求【listener处理acceptor请求】
                 if (key.isAcceptable())
                   doAccept(key);
               }
@@ -1396,6 +1460,7 @@ public abstract class Server {
     
     void doAccept(SelectionKey key) throws InterruptedException, IOException,  OutOfMemoryError {
       ServerSocketChannel server = (ServerSocketChannel) key.channel();
+      // TODO 注释： 对应的 NIO 的客户端
       SocketChannel channel;
       while ((channel = server.accept()) != null) {
 
@@ -1404,6 +1469,11 @@ public abstract class Server {
         channel.socket().setKeepAlive(true);
         
         Reader reader = getReader();
+        /*************************************************
+         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释： 给完成了连接的 client（SocketChannel） 创建一个链接对象 进行管理
+         */
+        //todo SocketChannel和Connection是一一对应的
         Connection c = connectionManager.register(channel,
             this.listenPort, this.isOnAuxiliaryPort);
         // If the connectionManager can't take it, close the connection.
@@ -1414,7 +1484,19 @@ public abstract class Server {
           connectionManager.droppedConnections.getAndIncrement();
           continue;
         }
+        //todo SelectionKey和Connection是一一对应的
+        /*************************************************
+         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释： 将新构造的 connection 作为 attachment 绑定到 SelectionKey 上
+         */
         key.attach(c);  // so closeCurrentConnection can get the object
+        //todo 一个reader可以对应多个Connection
+        /*************************************************
+         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释：
+         *  1、调用reader.addConnection 将其加入到阻塞队列 pendingConnections
+         *  2、调用 wakeup 唤醒了 reader 在 doRunLoop 方法中的 readSelector.select 阻塞
+         */
         reader.addConnection(c);
       }
     }
@@ -1428,6 +1510,13 @@ public abstract class Server {
       c.setLastContact(Time.now());
       
       try {
+
+        /*************************************************
+         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释：readAndProcess 两件事：
+         *  1、读取数据
+         *  2、封装成 RpcCall 加入 callQueue 队列
+         */
         count = c.readAndProcess();
       } catch (InterruptedException ieo) {
         LOG.info(Thread.currentThread().getName() + ": readAndProcess caught InterruptedException", ieo);
@@ -1522,6 +1611,7 @@ public abstract class Server {
             iter.remove();
             try {
               if (key.isWritable()) {
+                //todo 异步写！！！！
                 doAsyncWrite(key);
               }
             } catch (CancelledKeyException cke) {
@@ -1654,10 +1744,19 @@ public abstract class Server {
           //
           // Send as much data as we can in the non-blocking fashion
           //
+          /*************************************************
+           * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+           *  注释： 真实的写回 RPC 的响应给 客户端
+           *  返回的结果有可能比较大： channelWrite 写一次有可能写不完
+           *  1、如果写完了，同步写出返回结果，一次性写完了
+           *  2、如果没写完数据，就是通过异步的方式，进行多次写出！
+           */
+          //todo numBytes:写的剩余数据量
           int numBytes = channelWrite(channel, call.rpcResponse);
           if (numBytes < 0) {
             return true;
           }
+          //todo 没有剩余，意思就是一次性全部写完
           if (!call.rpcResponse.hasRemaining()) {
             //Clear out the response buffer so it can be collected
             call.rpcResponse = null;
@@ -1672,6 +1771,7 @@ public abstract class Server {
                   + " Wrote " + numBytes + " bytes.");
             }
           } else {
+            // TODO 注释： 如果一次没写完
             //
             // If we were unable to write the entire response out, then 
             // insert in Selector queue. 
@@ -1686,6 +1786,7 @@ public abstract class Server {
               try {
                 // Wakeup the thread blocked on select, only then can the call 
                 // to channel.register() complete.
+                // TODO 注释： 注册 OP_WRITE 事件
                 writeSelector.wakeup();
                 channel.register(writeSelector, SelectionKey.OP_WRITE, call);
               } catch (ClosedChannelException e) {
@@ -1722,9 +1823,14 @@ public abstract class Server {
         if (call.connection.useWrap) {
           wrapWithSasl(call);
         }
+        // TODO 注释： 加入队列
         call.connection.responseQueue.addLast(call);
+        // TODO 注释： 执行处理返回
+        //todo 队列大小为1，说明队列之前的元素已经被返回，说明队列不忙，可以由当前线程同步执行返回逻辑
         if (call.connection.responseQueue.size() == 1) {
           processResponse(call.connection.responseQueue, true);
+        }else {
+          //todo 如果队列忙，可以由responder线程异步执行返回
         }
       }
     }
@@ -2307,6 +2413,7 @@ public abstract class Server {
           data = ByteBuffer.allocate(dataLength);
         }
         // Now read the RPC packet
+        //todo 注释： 读取 rpc 请求数据
         count = channelRead(channel, data);
         
         if (data.remaining() == 0) {
@@ -2315,6 +2422,7 @@ public abstract class Server {
           ByteBuffer requestData = data;
           data = null; // null out in case processOneRpc throws.
           boolean isHeaderRead = connectionContextRead;
+          //todo 注释： requestData RPC 请求的数据包
           processOneRpc(requestData);
           // the last rpc-request we processed could have simply been the
           // connectionContext; if so continue to read the first RPC.
@@ -2687,7 +2795,7 @@ public abstract class Server {
                     .toByteArray())
                 .build();
       }
-
+      //todo 封装call对象
       RpcCall call = new RpcCall(this, header.getCallId(),
           header.getRetryCount(), rpcRequest,
           ProtoUtil.convert(header.getRpcKind()),
@@ -2722,6 +2830,7 @@ public abstract class Server {
       }
 
       try {
+        //todo 将rpccall放入队列
         internalQueueCall(call);
       } catch (RpcServerException rse) {
         throw rse;
@@ -2825,6 +2934,12 @@ public abstract class Server {
     // must invoke call.sendResponse to allow lifecycle management of
     // external, postponed, deferred calls, etc.
     private void sendResponse(RpcCall call) throws IOException {
+      /*************************************************
+       * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+       *  注释： responder.doRespond(call); 还是在 Handler 线程中执行的
+       *  1、就这句代码来看，其实就是一个同步的写
+       *  2、如果一次同步写，没有写完，则会调用 Handler 线程来执行分批次的异步写出
+       */
       responder.doRespond(call);
     }
 
@@ -2920,6 +3035,12 @@ public abstract class Server {
         boolean connDropped = true;
 
         try {
+          /*************************************************
+           * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+           *  注释：
+           *  1、Reader 读取 client 发送过来的 RPC 请求数据包，然后封装成 RpcCall 对象加入到 callQueue 队列
+           *  2、Handler 线程专门负责消费： callQueue 中的消息:  RpcCall
+           */
           call = callQueue.take(); // pop the queue; maybe blocked here
           startTimeNanos = Time.monotonicNowNanos();
           if (alignmentContext != null && call.isCallCoordinated() &&
@@ -2956,6 +3077,10 @@ public abstract class Server {
           if (remoteUser != null) {
             remoteUser.doAs(call);
           } else {
+            /*************************************************
+             * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+             *  注释： 真正 执行 RpcCall 请求
+             */
             call.run();
           }
         } catch (InterruptedException e) {
@@ -3061,7 +3186,10 @@ public abstract class Server {
     this.conf = conf;
     this.portRangeConfig = portRangeConfig;
     this.port = port;
-    this.rpcRequestClass = rpcRequestClass; 
+    this.rpcRequestClass = rpcRequestClass;
+    // TODO_MA 注释： Handler 线程的数量
+    // TODO_MA 注释： ResourceManager 通过 yarn.resourcemanager.resource-tracker.client.thread-count 来调整， 默认是 50
+    // TODO_MA 注释： NameNode 通过 dfs.namenode.service.handler.count 来调整，默认是 10
     this.handlerCount = handlerCount;
     this.socketSendBufferSize = 0;
     this.serverName = serverName;
@@ -3069,6 +3197,7 @@ public abstract class Server {
     this.maxDataLength = conf.getInt(CommonConfigurationKeys.IPC_MAXIMUM_DATA_LENGTH,
         CommonConfigurationKeys.IPC_MAXIMUM_DATA_LENGTH_DEFAULT);
     if (queueSizePerHandler != -1) {
+      // TODO_MA 注释： callQueue 的最大大小 = Hanlder的线程数量 * 100
       this.maxQueueSize = handlerCount * queueSizePerHandler;
     } else {
       this.maxQueueSize = handlerCount * conf.getInt(
@@ -3091,6 +3220,11 @@ public abstract class Server {
 
     // Setup appropriate callqueue
     final String prefix = getQueueClassPrefix();
+    /*************************************************
+     * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+     *  注释： RpcCall 队列
+     *  maxQueueSize = Handler 线程数量 * 100
+     */
     this.callQueue = new CallQueueManager<Call>(getQueueClass(prefix, conf),
         getSchedulerClass(prefix, conf),
         getClientBackoffEnable(prefix, conf), maxQueueSize, prefix, conf);
@@ -3103,11 +3237,20 @@ public abstract class Server {
     // configure supported authentications
     this.enabledAuthMethods = getAuthMethods(secretManager, conf);
     this.negotiateResponse = buildNegotiateResponse(enabledAuthMethods);
-    
+    /*************************************************
+     * todo TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+     *  注释： Listener 当中会初始化 AccpetSelector 和 ReaderSelector
+     */
     // Start the listener here and let it bind to the port
     listener = new Listener(port);
     // set the server port to the default listener port.
     this.port = listener.getAddress().getPort();
+    /*************************************************
+     * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+     *  注释： 做链接超时处理，启动定时任务做检查
+     *  todo 维护映射关系 ::: SocketChannel + Connection + SelectionKey 是一一对应的！！！
+     *  todo 维护映射关系 ::: Reader和SocketChannel是一对多的关系
+     */
     connectionManager = new ConnectionManager();
     this.rpcMetrics = RpcMetrics.create(this, conf);
     this.rpcDetailedMetrics = RpcDetailedMetrics.create(this.port);
@@ -3120,6 +3263,10 @@ public abstract class Server {
         CommonConfigurationKeysPublic.IPC_SERVER_LOG_SLOW_RPC_DEFAULT));
 
     // Create the responder here
+    /*************************************************
+     * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+     *  注释： 初始化一个 Responder 响应线程
+     */
     responder = new Responder();
     
     if (secretManager != null || UserGroupInformation.isSecurityEnabled()) {
@@ -3382,7 +3529,15 @@ public abstract class Server {
 
   /** Starts the service.  Must be called before any calls will be handled. */
   public synchronized void start() {
+    /*************************************************
+     * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+     *  注释： 响应线程启动
+     */
     responder.start();
+    /*************************************************
+     * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+     *  注释： 链接请求监听线程启动
+     */
     listener.start();
     if (auxiliaryListenerMap != null && auxiliaryListenerMap.size() > 0) {
       for (Listener newListener : auxiliaryListenerMap.values()) {

@@ -92,6 +92,7 @@ import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ConcurrentSkipListMap;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+
 public class NodeManager extends CompositeService
     implements EventHandler<NodeManagerEvent>, NodeManagerMXBean {
 

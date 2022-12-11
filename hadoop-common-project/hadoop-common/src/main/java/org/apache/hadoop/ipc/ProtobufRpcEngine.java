@@ -525,6 +525,12 @@ public class ProtobufRpcEngine implements RpcEngine {
           server.rpcDetailedMetrics.init(protocolImpl.protocolClass);
           currentCallInfo.set(new CallInfo(server, methodName));
           currentCall.setDetailedMetricsName(methodName);
+          /*************************************************
+           * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+           *  注释： 真正的 RPC 调用处理
+           *  Service 就是对应的 Protocol
+           *  resourceTrakcer.registerNodeMnaager();
+           */
           result = service.callBlockingMethod(methodDescriptor, null, param);
           // Check if this needs to be a deferred response,
           // by checking the ThreadLocal callback being set
