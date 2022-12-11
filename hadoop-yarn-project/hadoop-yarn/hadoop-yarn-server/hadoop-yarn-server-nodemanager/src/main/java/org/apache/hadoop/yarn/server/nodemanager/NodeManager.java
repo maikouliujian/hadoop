@@ -395,6 +395,13 @@ public class NodeManager extends CompositeService
         YarnConfiguration.DEFAULT_RM_WORK_PRESERVING_RECOVERY_ENABLED);
 
     try {
+      /*************************************************
+       * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+       *  注释： NM 状态持久化服务
+       *  如果启用了 yarn.nodemanager.recovery.enabled = true， 默认是 false
+       *  yarn.nodemanager.recovery.enabled = true 则实现是： NMLeveldbStateStoreService
+       *  yarn.nodemanager.recovery.enabled = false 则实现是： NMNullStateStoreService  所有方法都是空实现
+       */
       initAndStartRecoveryStore(conf);
     } catch (IOException e) {
       String recoveryDirName = conf.get(YarnConfiguration.NM_RECOVERY_DIR);
@@ -402,7 +409,10 @@ public class NodeManager extends CompositeService
           YarnRuntimeException("Unable to initialize recovery directory at "
               + recoveryDirName, e);
     }
-
+    /*************************************************
+     * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+     *  注释： SecretManager
+     */
     NMContainerTokenSecretManager containerTokenSecretManager =
         new NMContainerTokenSecretManager(conf, nmStore);
 
@@ -410,34 +420,63 @@ public class NodeManager extends CompositeService
         new NMTokenSecretManagerInNM(nmStore);
 
     recoverTokens(nmTokenSecretManager, containerTokenSecretManager);
-    
-    this.aclsManager = new ApplicationACLsManager(conf);
 
+    /*************************************************
+     * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+     *  注释： ApplicationACLsManager App 权限管理服务
+     */
+    this.aclsManager = new ApplicationACLsManager(conf);
+    /*************************************************
+     * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+     *  注释：  NodeManager 节点的本地文件夹健康状态检查服务 = 磁盘健康检查服务
+     */
     this.dirsHandler = new LocalDirsHandlerService(metrics);
 
     boolean isDistSchedulingEnabled =
         conf.getBoolean(YarnConfiguration.DIST_SCHEDULING_ENABLED,
             YarnConfiguration.DEFAULT_DIST_SCHEDULING_ENABLED);
-
+    /*************************************************
+     * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+     *  注释： NodeManager 上下文对象
+     */
     this.context = createNMContext(containerTokenSecretManager,
         nmTokenSecretManager, nmStore, isDistSchedulingEnabled, conf);
-
+    /*************************************************
+     * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+     *  注释： ResourcePluginManager 资源插件服务
+     */
     ResourcePluginManager pluginManager = createResourcePluginManager();
     pluginManager.initialize(context);
     ((NMContext)context).setResourcePluginManager(pluginManager);
-
+    /*************************************************
+     * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+     *  注释： DefaultContainerExecutor Container 执行器服务
+     *  Linux Windows
+     */
     ContainerExecutor exec = createContainerExecutor(conf);
     try {
       exec.init(context);
     } catch (IOException e) {
       throw new YarnRuntimeException("Failed to initialize container executor", e);
-    }    
+    }
+    /*************************************************
+     * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+     *  注释： 文件清理服务
+     */
     DeletionService del = createDeletionService(exec);
     addService(del);
-
+    /*************************************************
+     * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+     *  注释： 创建 AsyncDispatcher 实例对象
+     */
     // NodeManager level dispatcher
     this.dispatcher = createNMDispatcher();
-
+    /*************************************************
+     * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+     *  注释： 节点健康检查服务
+     *  第一个参数： NodeHealthScriptRunner
+     *  第二个参数： LocalDirsHandlerService
+     */
     nodeHealthChecker =
         new NodeHealthCheckerService(
             getNodeHealthScriptRunner(conf), dirsHandler);
@@ -446,62 +485,102 @@ public class NodeManager extends CompositeService
 
     ((NMContext)context).setContainerExecutor(exec);
     ((NMContext)context).setDeletionService(del);
-
+    /*************************************************
+     * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+     *  注释： 节点状态更新服务 NodeStatusUpdaterImpl
+     *  1、负责： NodeManager 向 ResourceManager 注册
+     *  2、负责： NodeManager 向 ResourceManager 心跳
+     */
     nodeStatusUpdater =
         createNodeStatusUpdater(context, dispatcher, nodeHealthChecker);
-
+    /*************************************************
+     * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+     *  注释： ConfigurationNodeLabelsProvider 或者 ScriptBasedNodeLabelsProvider
+     *  默认是 null
+     */
     nodeLabelsProvider = createNodeLabelsProvider(conf);
     if (nodeLabelsProvider != null) {
       addIfService(nodeLabelsProvider);
       nodeStatusUpdater.setNodeLabelsProvider(nodeLabelsProvider);
     }
-
+    /*************************************************
+     * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+     *  注释： ConfigurationNodeAttributesProvider  或者 ScriptBasedNodeAttributesProvider
+     *  默认是 null
+     */
     nodeAttributesProvider = createNodeAttributesProvider(conf);
     if (nodeAttributesProvider != null) {
       addIfService(nodeAttributesProvider);
       nodeStatusUpdater.setNodeAttributesProvider(nodeAttributesProvider);
     }
-
+    /*************************************************
+     * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+     *  注释： 节点资源监控服务 NodeResourceMonitorImpl
+     */
     nodeResourceMonitor = createNodeResourceMonitor();
     addService(nodeResourceMonitor);
     ((NMContext) context).setNodeResourceMonitor(nodeResourceMonitor);
-
+    /*************************************************
+     * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+     *  注释： Container 容器管理服务 ContainerManagerImpl
+     */
     containerManager =
         createContainerManager(context, exec, del, nodeStatusUpdater,
         this.aclsManager, dirsHandler);
     addService(containerManager);
     ((NMContext) context).setContainerManager(containerManager);
-
+    /*************************************************
+     * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+     *  注释： NM 节点的日志聚合服务 NMLogAggregationStatusTracker
+     */
     this.nmLogAggregationStatusTracker = createNMLogAggregationStatusTracker(
         context);
     addService(nmLogAggregationStatusTracker);
     ((NMContext)context).setNMLogAggregationStatusTracker(
         this.nmLogAggregationStatusTracker);
-
+    /*************************************************
+     * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+     *  注释： web服务
+     */
     WebServer webServer = createWebServer(context, containerManager
         .getContainersMonitor(), this.aclsManager, dirsHandler);
     addService(webServer);
     ((NMContext) context).setWebServer(webServer);
-
+    /*************************************************
+     * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+     *  注释： Container 申请分配器： OpportunisticContainerAllocator
+     */
     ((NMContext) context).setQueueableContainerAllocator(
         new OpportunisticContainerAllocator(
             context.getContainerTokenSecretManager()));
-
+    /*************************************************
+     * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+     *  注释： 给中央异步事件调度器 注册 事件 和 事件处理器
+     */
     dispatcher.register(ContainerManagerEventType.class, containerManager);
     dispatcher.register(NodeManagerEventType.class, this);
     addService(dispatcher);
-
+    /*************************************************
+     * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+     *  注释： JVM 暂停监视器服务
+     */
     pauseMonitor = new JvmPauseMonitor();
     addService(pauseMonitor);
     metrics.getJvmMetrics().setPauseMonitor(pauseMonitor);
 
     DefaultMetricsSystem.initialize("NodeManager");
-
+    /*************************************************
+     * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+     *  注释： timelineServiceV2 默认没启动，启用的是 v1
+     */
     if (YarnConfiguration.timelineServiceV2Enabled(conf)) {
       this.nmCollectorService = createNMCollectorService(context);
       addService(nmCollectorService);
     }
-
+    /*************************************************
+     * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+     *  注释： 在调用初始化以获取更多服务之前，请先进行安全登录。
+     */
     // StatusUpdater should be added last so that it get started last 
     // so that we make sure everything is up before registering with RM. 
     addService(nodeStatusUpdater);
@@ -516,7 +595,10 @@ public class NodeManager extends CompositeService
     }
 
     registerMXBean();
-
+    /*************************************************
+     * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+     *  注释： 所有 Service 进行初始化
+     */
     super.serviceInit(conf);
     // TODO add local dirs to del
   }
@@ -975,7 +1057,16 @@ public class NodeManager extends CompositeService
       // System exit should be called only when NodeManager is instantiated from
       // main() funtion
       this.shouldExitOnShutdownEvent = true;
+      /*************************************************
+       * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+       *  注释： 其实是调用 serviceInit() 方法
+       */
       this.init(conf);
+      /*************************************************
+       * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+       *  注释： 其实是调用 serviceStart() 方法
+       *  但是 NodeManager 没有重写，调用的是继承的父类： CompositeService 中的 serviceStart() 方法
+       */
       this.start();
     } catch (Throwable t) {
       LOG.error("Error starting NodeManager", t);
