@@ -166,6 +166,10 @@ public class NodeManager extends CompositeService
 
   protected NodeStatusUpdater createNodeStatusUpdater(Context context,
       Dispatcher dispatcher, NodeHealthCheckerService healthChecker) {
+    /*************************************************
+     * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+     *  注释： NodeManager 向 ResourceManager 注册
+     */
     return new NodeStatusUpdaterImpl(context, dispatcher, healthChecker,
         metrics);
   }

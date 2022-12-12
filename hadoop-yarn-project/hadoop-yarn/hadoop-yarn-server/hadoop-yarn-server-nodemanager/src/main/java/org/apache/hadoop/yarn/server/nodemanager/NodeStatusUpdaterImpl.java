@@ -183,11 +183,19 @@ public class NodeStatusUpdaterImpl extends AbstractService implements
   public void setNodeLabelsProvider(NodeLabelsProvider provider) {
     this.nodeLabelsProvider = provider;
   }
-
+  /*************************************************
+   * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+   *  注释： 思考
+   *  1、注册需要做什么： cpu 信息  内存 信息
+   *  2、心跳需要做什么： 资源使用的状态（container的状态） 需要汇报
+   *  只有这么做，RM 才能实时感知整个集群的资源使用情况
+   */
   @Override
   protected void serviceInit(Configuration conf) throws Exception {
+    // TODO 注释： 获取 NodeManager 上的 cpu 和 memory 资源配置
     this.totalResource = NodeManagerHardwareUtils.getNodeResources(conf);
     long memoryMb = totalResource.getMemorySize();
+    // TODO 注释： vmem: pmem = 2.1
     float vMemToPMem =
         conf.getFloat(
             YarnConfiguration.NM_VMEM_PMEM_RATIO,
@@ -201,16 +209,25 @@ public class NodeStatusUpdaterImpl extends AbstractService implements
     LOG.info("Nodemanager resources is set to: " + totalResource);
 
     metrics.addResource(totalResource);
-
+    /*************************************************
+     * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+     *  注释： 内存 和 cpu
+     */
     // Get actual node physical resources
     long physicalMemoryMb = memoryMb;
     int physicalCores = virtualCores;
+    /*************************************************
+     * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+     *  注释： 获取实际可用的 内存 和 cpu 个数
+     */
     ResourceCalculatorPlugin rcp =
         ResourceCalculatorPlugin.getNodeResourceMonitorPlugin(conf);
     if (rcp != null) {
       physicalMemoryMb = rcp.getPhysicalMemorySize() / (1024 * 1024);
       physicalCores = rcp.getNumProcessors();
     }
+    // TODO 注释： 封装成一个 Resource 信息
+    // TODO 注释： 这就是当前这个 NodeManager 存在于这台服务器上的可用资源！
     this.physicalResource =
         Resource.newInstance(physicalMemoryMb, physicalCores);
 
@@ -227,7 +244,7 @@ public class NodeStatusUpdaterImpl extends AbstractService implements
         createNMNodeLabelsHandler(nodeLabelsProvider);
     nodeAttributesHandler =
         createNMNodeAttributesHandler(nodeAttributesProvider);
-
+    // TODO 注释： 追踪 container 的默认时长： 10min
     // Default duration to track stopped containers on nodemanager is 10Min.
     // This should not be assigned very large value as it will remember all the
     // containers stopped during that time.
@@ -256,21 +273,42 @@ public class NodeStatusUpdaterImpl extends AbstractService implements
     this.timelineServiceV2Enabled = YarnConfiguration.
         timelineServiceV2Enabled(conf);
   }
-
+  /*************************************************
+   * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+   *  注释：  四段
+   *  1、获取注册需要的信息
+   *  2、获取进行 RPC 通信的协议代理对象， RPC Client
+   *  3、注册
+   *  4、心跳
+   */
   @Override
   protected void serviceStart() throws Exception {
-
+    // TODO 注释： 获取 NodeManagerID, httpPort, YarnVersion
     // NodeManager is the last service to start, so NodeId is available.
     this.nodeId = this.context.getNodeId();
     LOG.info("Node ID assigned is : " + this.nodeId);
     this.httpPort = this.context.getHttpPort();
     this.nodeManagerVersionId = YarnVersionInfo.getVersion();
     try {
+      /*************************************************
+       * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+       *  注释： 获取 ResourceTracker
+       *  NM ====== ResourceTracker =====> RM
+       */
       // Registration has to be in start so that ContainerManager can get the
       // perNM tokens needed to authenticate ContainerTokens.
       this.resourceTracker = getRMClient();
+      /*************************************************
+       * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+       *  注释： NodeManager 向 ResourceManager 注册
+       */
       registerWithRM();
       super.serviceStart();
+      /*************************************************
+       * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+       *  注释： 开启心跳！
+       *  内部启动了一个线程，每隔 1s 钟，向 RM 发送 心跳 RPC 请求
+       */
       startStatusUpdater();
     } catch (Exception e) {
       String errorMessage = "Unexpected error starting NodeStatusUpdater";
@@ -379,7 +417,9 @@ public class NodeStatusUpdaterImpl extends AbstractService implements
   @VisibleForTesting
   protected void registerWithRM()
       throws YarnException, IOException {
+
     RegisterNodeManagerResponse regNMResponse;
+    // TODO 注释： NodeManager 的标签和属性集合
     Set<NodeLabel> nodeLabels = nodeLabelsHandler.getNodeLabelsForRegistration();
     Set<NodeAttribute> nodeAttributes =
         nodeAttributesHandler.getNodeAttributesForRegistration();
@@ -389,8 +429,14 @@ public class NodeStatusUpdaterImpl extends AbstractService implements
     // ContainerManagerImpl#startContainers to avoid race condition
     // during RM recovery
     synchronized (this.context) {
+      // TODO 注释： 获取该 NodeManager 上的所有的 container 的状态
       List<NMContainerStatus> containerReports = getNMContainerStatuses();
+      // TODO 注释： 获取 NodeManager 的状态
       NodeStatus nodeStatus = getNodeStatus(0);
+      /*************************************************
+       * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+       *  注释： 构建 NodeManager 的注册请求
+       */
       RegisterNodeManagerRequest request =
           RegisterNodeManagerRequest.newInstance(nodeId, httpPort, totalResource,
               nodeManagerVersionId, containerReports, getRunningApplications(),
@@ -411,6 +457,11 @@ public class NodeStatusUpdaterImpl extends AbstractService implements
           request.setLogAggregationReportsForApps(logAggregationReports);
         }
       }
+      /*************************************************
+       * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+       *  注释： 通过 ResourceTracker 向 ResourceManager 注册 NodeManager
+       */
+      //todo RegisterNodeManagerResponse
       regNMResponse =
           resourceTracker.registerNodeManager(request);
       // Make sure rmIdentifier is set before we release the lock
@@ -427,6 +478,7 @@ public class NodeStatusUpdaterImpl extends AbstractService implements
             + message);
     }
 
+    // TODO 注释： 比对 NodeManager 和 ResourceManager 的版本
     // if ResourceManager version is too old then shutdown
     if (!minimumResourceManagerVersion.equals("NONE")){
       if (minimumResourceManagerVersion.equals("EqualToNM")){
@@ -447,6 +499,7 @@ public class NodeStatusUpdaterImpl extends AbstractService implements
             + "version error, " + message);
       }
     }
+    // TODO 注释： 注册搞定！
     this.registeredWithRM = true;
     MasterKey masterKey = regNMResponse.getContainerTokenMasterKey();
     // do this now so that its set before we start heartbeating to RM
@@ -461,7 +514,7 @@ public class NodeStatusUpdaterImpl extends AbstractService implements
     if (masterKey != null) {
       this.context.getNMTokenSecretManager().setMasterKey(masterKey);
     }
-
+    // TODO 注释： 日志输出！
     StringBuilder successfullRegistrationMsg = new StringBuilder();
     successfullRegistrationMsg.append("Registered with ResourceManager as ")
         .append(this.nodeId);

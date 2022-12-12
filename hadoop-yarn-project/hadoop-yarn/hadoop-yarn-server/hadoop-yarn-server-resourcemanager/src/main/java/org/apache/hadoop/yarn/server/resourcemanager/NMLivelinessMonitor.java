@@ -47,7 +47,12 @@ public class NMLivelinessMonitor extends AbstractLivelinessMonitor<NodeId> {
 
   @Override
   protected void expire(NodeId id) {
+    /*************************************************
+     * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+     *  注释： handler = DeactivateNodeTransition
+     */
     dispatcher.handle(
-        new RMNodeEvent(id, RMNodeEventType.EXPIRE)); 
+        new RMNodeEvent(id, RMNodeEventType.EXPIRE));
+    // TODO 注释： 由 RMNodeImpl.deactivateNode(rmNode, finalState); 执行过期处理
   }
 }

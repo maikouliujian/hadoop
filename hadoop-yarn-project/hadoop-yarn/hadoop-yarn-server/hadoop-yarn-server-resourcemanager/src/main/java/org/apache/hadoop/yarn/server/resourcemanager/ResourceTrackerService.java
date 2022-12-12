@@ -396,12 +396,16 @@ public class ResourceTrackerService extends AbstractService implements
       rmContext.getDispatcher().getEventHandler().handle(evt);
     }
   }
-
+  /*************************************************
+   * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+   *  注释： 接受 NodeManager 的注册请求
+   */
   @SuppressWarnings("unchecked")
   @Override
   public RegisterNodeManagerResponse registerNodeManager(
       RegisterNodeManagerRequest request) throws YarnException,
       IOException {
+    // TODO 注释： 获取 Request 中的关于 NodeManager 的各种信息
     NodeId nodeId = request.getNodeId();
     String host = nodeId.getHost();
     int cmPort = nodeId.getPort();
@@ -410,7 +414,10 @@ public class ResourceTrackerService extends AbstractService implements
     String nodeManagerVersion = request.getNMVersion();
     Resource physicalResource = request.getPhysicalResource();
     NodeStatus nodeStatus = request.getNodeStatus();
-
+    /*************************************************
+     * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+     *  注释： 先生成一个 注册响应对象，带注册成功之后，塞入必要数据返回给 NodeManager
+     */
     RegisterNodeManagerResponse response = recordFactory
         .newRecordInstance(RegisterNodeManagerResponse.class);
 
@@ -418,7 +425,7 @@ public class ResourceTrackerService extends AbstractService implements
       if (minimumNodeManagerVersion.equals("EqualToRM")) {
         minimumNodeManagerVersion = YarnVersionInfo.getVersion();
       }
-
+      // TODO 注释： 版本比对，如果 NodeManager 版本过小，发送 NodeAction.SHUTDOWN 命令
       if ((nodeManagerVersion == null) ||
           (VersionUtil.compareVersions(nodeManagerVersion,minimumNodeManagerVersion)) < 0) {
         String message =
@@ -432,7 +439,7 @@ public class ResourceTrackerService extends AbstractService implements
         return response;
       }
     }
-
+    // TODO 注释： 校验是否是合法的 NodeManager，如果不合法，发送 NodeAction.SHUTDOWN 命令
     // Check if this node is a 'valid' node
     if (!this.nodesListManager.isValidNode(host) &&
         !isNodeInDecommissioning(nodeId)) {
@@ -444,10 +451,13 @@ public class ResourceTrackerService extends AbstractService implements
       response.setNodeAction(NodeAction.SHUTDOWN);
       return response;
     }
-
+    // TODO 注释： nodeManagerID
     // check if node's capacity is load from dynamic-resources.xml
     String nid = nodeId.toString();
-
+    /*************************************************
+     * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+     *  注释： 从 dynamic-resources.xml 中获取资源配置
+     */
     Resource dynamicLoadCapability = loadNodeResourceFromDRConfiguration(nid);
     if (dynamicLoadCapability != null) {
       if (LOG.isDebugEnabled()) {
@@ -459,7 +469,7 @@ public class ResourceTrackerService extends AbstractService implements
       // sync back with new resource.
       response.setResource(capability);
     }
-
+    // TODO 注释： 如果 nodemanager 的可用资源小于 1G 或者 cpu 少于一个，则返回 NodeAction.SHUTDOWN
     // Check if this node has minimum allocations
     if (capability.getMemorySize() < minAllocMb
         || capability.getVirtualCores() < minAllocVcores) {
@@ -478,12 +488,26 @@ public class ResourceTrackerService extends AbstractService implements
         .getCurrentKey());
     response.setNMTokenMasterKey(nmTokenSecretManager
         .getCurrentKey());
-
+    /*************************************************
+     * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+     *  注释： 生成一个 RMNodeImpl 对象！
+     *  RM 中有四种类型的状态机：
+     *  1、RMApp
+     *  2、RMAppAttempt
+     *  3、RMContainer
+     *  4、RMNode 管理了一个注册成功的 NodeManager 的状态， 存在于RM 中
+     */
     RMNode rmNode = new RMNodeImpl(nodeId, rmContext, host, cmPort, httpPort,
         resolve(host), capability, nodeManagerVersion, physicalResource);
-
+    // TODO 注释： 完成注册
+    // TODO 注释： RM 中有一个 context, context 中有一个 ConcurrentMap<NodeId, RMNode> nodes
     RMNode oldNode = this.rmContext.getRMNodes().putIfAbsent(nodeId, rmNode);
     if (oldNode == null) {
+      /*************************************************
+       * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+       *  注释： 触发 RMNodeStartedEvent 事件
+       *   RMNodeEventType.STARTED 事件，由 AddNodeTransition 执行处理
+       */
       RMNodeStartedEvent startEvent = new RMNodeStartedEvent(nodeId,
           request.getNMContainerStatuses(),
           request.getRunningApplications(), nodeStatus);
@@ -497,9 +521,14 @@ public class ResourceTrackerService extends AbstractService implements
         startEvent.setLogAggregationReportsForApps(request
             .getLogAggregationReportsForApps());
       }
+      /*************************************************
+       * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+       *  注释： AddNodeTransition 执行处理 RMNodeEventType.STARTED 事件
+       */
       this.rmContext.getDispatcher().getEventHandler().handle(
           startEvent);
     } else {
+      // TODO 注释： 先注销
       LOG.info("Reconnect from the node at: " + host);
       this.nmLivelinessMonitor.unregister(nodeId);
 
@@ -519,14 +548,14 @@ public class ResourceTrackerService extends AbstractService implements
         }
         this.rmContext.getDispatcher().getEventHandler()
             .handle(new NodeRemovedSchedulerEvent(rmNode));
-
+        // TODO 注释： 再注册
         this.rmContext.getRMNodes().put(nodeId, rmNode);
         this.rmContext.getDispatcher().getEventHandler()
             .handle(new RMNodeStartedEvent(nodeId, null, null, nodeStatus));
       } else {
         // Reset heartbeat ID since node just restarted.
         oldNode.resetLastNodeHeartBeatResponse();
-
+        // TODO 注释： RMNodeReconnectEvent 事件
         this.rmContext.getDispatcher().getEventHandler()
             .handle(new RMNodeReconnectEvent(nodeId, rmNode,
                 request.getRunningApplications(),
@@ -536,6 +565,12 @@ public class ResourceTrackerService extends AbstractService implements
     // On every node manager register we will be clearing NMToken keys if
     // present for any running application.
     this.nmTokenSecretManager.removeNodeKey(nodeId);
+    /*************************************************
+     * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+     *  注释： 注册到 nmLivelinessMonitor 用于验活
+     *  1、RM 中，除了有一个 Map 来保存注册成功的 NM 节点
+     *  2、另外，还有一个验活组件：nmLivelinessMonitor
+     */
     this.nmLivelinessMonitor.register(nodeId);
     
     // Handle received container status, this should be processed after new
@@ -549,7 +584,7 @@ public class ResourceTrackerService extends AbstractService implements
         }
       }
     }
-
+    // TODO 注释： nodeLabels 处理
     // Update node's labels to RM's NodeLabelManager.
     Set<String> nodeLabels = NodeLabelsUtils.convertToStringSet(
         request.getNodeLabels());
@@ -565,7 +600,7 @@ public class ResourceTrackerService extends AbstractService implements
     } else if (isDelegatedCentralizedNodeLabelsConf) {
       this.rmContext.getRMDelegatedNodeLabelsUpdater().updateNodeLabels(nodeId);
     }
-
+    // TODO 注释： nodeAttributes 处理
     // Update node's attributes to RM's NodeAttributesManager.
     if (request.getNodeAttributes() != null) {
       try {
@@ -581,7 +616,7 @@ public class ResourceTrackerService extends AbstractService implements
         response.setAreNodeAttributesAcceptedByRM(false);
       }
     }
-
+    // TODO 注释： 日志输出
     StringBuilder message = new StringBuilder();
     message.append("NodeManager from node ").append(host).append("(cmPort: ")
         .append(cmPort).append(" httpPort: ");
@@ -596,7 +631,7 @@ public class ResourceTrackerService extends AbstractService implements
       message.append(", node attributes { ")
           .append(request.getNodeAttributes() + " } ");
     }
-
+    // TODO 注释： 返回响应！
     LOG.info(message.toString());
     response.setNodeAction(NodeAction.NORMAL);
     response.setRMIdentifier(ResourceManager.getClusterTimeStamp());

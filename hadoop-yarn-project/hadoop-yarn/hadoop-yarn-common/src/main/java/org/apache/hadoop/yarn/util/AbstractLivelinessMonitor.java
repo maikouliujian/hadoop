@@ -36,20 +36,34 @@ import org.apache.hadoop.service.AbstractService;
 @Public
 @Evolving
 public abstract class AbstractLivelinessMonitor<O> extends AbstractService {
-
+  // TODO 注释： 工作机制总结：每隔一段时间，对所有存活节点，都做一次死活判断，必然通过一个定时线程来实现
+  // TODO 注释： 包含以下必要的信息
+  // TODO 注释： 一个线程 checkerThread
+  // TODO 注释： 一个注册表/心跳表 Map<O, Long> running
+  // TODO 注释： 线程的间隔工作时间 monitorInterval
+  // TODO 注释： 判断组件是否死亡的一个超时时间 expireInterval
   private static final Log LOG = LogFactory.getLog(AbstractLivelinessMonitor.class);
 
   //thread which runs periodically to see the last time since a heartbeat is
   //received.
+  // TODO 注释： 检测线程
   private Thread checkerThread;
   private volatile boolean stopped;
+  // TODO 注释： 默认过期时间
   public static final int DEFAULT_EXPIRE = 5*60*1000;//5 mins
   private long expireInterval = DEFAULT_EXPIRE;
+  // TODO 注释： 检测时间间隔是 过期时间的 1/3
   private long monitorInterval = expireInterval / 3;
   private volatile boolean resetTimerOnStart = true;
 
   private final Clock clock;
-
+  /*************************************************
+   * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+   *  注释： 所有成功注册的 组件 的集合
+   *  1、key = 组件ID
+   *  2、value = 时间戳 = 最近一次成功心跳的时间，如果没有心跳，那就是注册
+   *  这些个组件，可以是 NodeManager，可以是 ApplicationMaster，可以是 RMApp， 可以是 Container
+   */
   private Map<O, Long> running = new HashMap<O, Long>();
 
   public AbstractLivelinessMonitor(String name, Clock clock) {
@@ -103,10 +117,18 @@ public abstract class AbstractLivelinessMonitor<O> extends AbstractService {
   }
 
   public synchronized void register(O ob) {
+    // TODO 注释： 注册
+    // TODO 注释： key  = 组件ID
+    // TODO 注释： value  = 当前时间
+    // TODO 注释： 如果 上一次心跳时间 value + 最大心跳超时时间 5min < 当前时间，证明心跳超时了
     register(ob, clock.getTime());
   }
 
   public synchronized void register(O ob, long expireTime) {
+    /*************************************************
+     * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+     *  注释： 注册一个 管理对象的 超时时间到  running 这个 map 中
+     */
     running.put(ob, expireTime);
   }
 
