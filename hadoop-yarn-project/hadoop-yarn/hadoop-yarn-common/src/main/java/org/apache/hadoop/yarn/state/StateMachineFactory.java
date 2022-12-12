@@ -46,14 +46,20 @@ import org.apache.hadoop.classification.InterfaceStability.Evolving;
 final public class StateMachineFactory
              <OPERAND, STATE extends Enum<STATE>,
               EVENTTYPE extends Enum<EVENTTYPE>, EVENT> {
-
+  /*************************************************
+   * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+   *  注释： 就是将状态机的一个个过渡的 ApplicableTransition 实现串联为一个列表，每个节点包含一个 ApplicableTransition 实现及指向下一个节点的引用
+   */
   private final TransitionsListNode transitionsListNode;
-
+  /*************************************************
+   * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+   *  注释： 状态拓扑表，为了提高检索状态对应的过渡 map 而冗余的数据结构，此结构在 optimized 为真时，通过对 transitionsListNode 链表进行处理产生
+   */
   private Map<STATE, Map<EVENTTYPE,
     Transition<OPERAND, STATE, EVENTTYPE, EVENT>>> stateMachineTable;
-
+  // TODO 注释： 对象创建时，内部有限状态机的默认初始状态。比如：JobImpl 的内部状态机默认初始状态是 JobStateInternal.NEW。
   private STATE defaultInitialState;
-
+  // TODO 注释： 布尔类型，用于标记当前状态机是否需要优化性能，即构建状态拓扑表 stateMachineTable。
   private final boolean optimized;
 
   /**
@@ -277,6 +283,10 @@ final public class StateMachineFactory
   public StateMachineFactory
              <OPERAND, STATE, EVENTTYPE, EVENT>
           installTopology() {
+    /*************************************************
+     * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+     *  注释： 构造一个状态机
+     */
     return new StateMachineFactory<OPERAND, STATE, EVENTTYPE, EVENT>(this, true);
   }
 
@@ -322,16 +332,21 @@ final public class StateMachineFactory
 
     // I use EnumMap here because it'll be faster and denser.  I would
     //  expect most of the states to have at least one transition.
+    // TODO 注释： 状态表的定义：
+    // TODO 注释： key = preState，
+    //            value = Map<EVENTTYPE, Transition>
+    //                 1、key = EVENTTYPE 事件类型
+    //                 2、value = Transition<OPERAND【状态实体】, STATE【转换后状态】, EVENTTYPE【事件类型】, EVENT【事件】>
     stateMachineTable
        = new EnumMap<STATE, Map<EVENTTYPE,
                            Transition<OPERAND, STATE, EVENTTYPE, EVENT>>>(prototype);
-
+    // TODO 注释： 将 链表 中的每个 TransitionsListNode 节点上的 Transition 压入栈中
     for (TransitionsListNode cursor = transitionsListNode;
          cursor != null;
          cursor = cursor.next) {
       stack.push(cursor.transition);
     }
-
+    // TODO 注释： 构建 State Machine Table
     while (!stack.isEmpty()) {
       stack.pop().apply(this);
     }
@@ -455,7 +470,9 @@ final public class StateMachineFactory
 
   private class InternalStateMachine
         implements StateMachine<STATE, EVENTTYPE, EVENT> {
+    // TODO 注释： 状态机 实例,可能是Nodemanger、Container、task等
     private final OPERAND operand;
+    // TODO 注释： 当前状态
     private STATE currentState;
     private final StateTransitionListener<OPERAND, EVENT, STATE> listener;
 
@@ -470,6 +487,10 @@ final public class StateMachineFactory
       this.listener =
           (transitionListener == null) ? NOOP_LISTENER : transitionListener;
       if (!optimized) {
+        /*************************************************
+         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释： 生成状态机表
+         */
         maybeMakeStateMachineTable();
       }
     }

@@ -26,7 +26,9 @@ import org.apache.hadoop.classification.InterfaceStability.Evolving;
 public interface StateMachine
                  <STATE extends Enum<STATE>,
                   EVENTTYPE extends Enum<EVENTTYPE>, EVENT> {
+  // TODO 注释： 获取状态机的当前状态
   public STATE getCurrentState();
+  // TODO 注释： 完成一个状态转移（preState ===> postState）
   public STATE doTransition(EVENTTYPE eventType, EVENT event)
         throws InvalidStateTransitionException;
 }

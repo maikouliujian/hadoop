@@ -193,7 +193,10 @@ public class RMNodeImpl implements RMNode, EventHandler<RMNodeEvent> {
 
   private NodeHeartbeatResponse latestNodeHeartBeatResponse = recordFactory
       .newRecordInstance(NodeHeartbeatResponse.class);
-
+  /*************************************************
+   * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+   *  注释： 初始化一个状态机
+   */
   private static final StateMachineFactory<RMNodeImpl,
                                            NodeState,
                                            RMNodeEventType,
@@ -401,7 +404,7 @@ public class RMNodeImpl implements RMNode, EventHandler<RMNodeEvent> {
     ReentrantReadWriteLock lock = new ReentrantReadWriteLock();
     this.readLock = lock.readLock();
     this.writeLock = lock.writeLock();
-
+    //todo 通过stateMachineFactory构建状态机
     this.stateMachine = stateMachineFactory.make(this);
 
     this.nodeUpdateQueue = new ConcurrentLinkedQueue<UpdatedContainerInfo>();
