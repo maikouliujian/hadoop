@@ -1274,6 +1274,13 @@ public class JobClient extends CLI implements AutoCloseable {
   /**
    */
   public static void main(String argv[]) throws Exception {
+    /*************************************************
+     * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+     *  注释： JobClient 中没有 run() 方法，运行父类中的 run() 方法
+     *  Tool toll = new JobClient();
+     *  ToolRunner.run() 方法的内部就是 运行 tool.run();
+     *  JobClient 的父类： CLI
+     */
     int res = ToolRunner.run(new JobClient(), argv);
     System.exit(res);
   }

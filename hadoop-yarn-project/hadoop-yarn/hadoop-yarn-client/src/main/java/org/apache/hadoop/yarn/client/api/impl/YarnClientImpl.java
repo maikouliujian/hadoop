@@ -168,6 +168,10 @@ public class YarnClientImpl extends YarnClient {
     super(YarnClientImpl.class.getName());
   }
 
+  /*************************************************
+   * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+   *  注释： 这个 YarnClientImpl 的初始化方法，只是获取一些参数的默认值
+   */
   @SuppressWarnings("deprecation")
   @Override
   protected void serviceInit(Configuration conf) throws Exception {
@@ -230,6 +234,12 @@ public class YarnClientImpl extends YarnClient {
   @Override
   protected void serviceStart() throws Exception {
     try {
+      /*************************************************
+       * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+       *  注释： 获取一个用于和 ResourceManager 进行通信的 协议代理
+       *  Client 和 ResourceManager 之间的通信协议是： ApplicationClientProtocol
+       *  在 ResourceManager 中，存在一个 ClientRMService 组件专门用于给这个通信协议提供服务
+       */
       rmClient = ClientRMProxy.createRMProxy(getConfig(),
           ApplicationClientProtocol.class);
       if (historyServiceEnabled) {
@@ -290,13 +300,16 @@ public class YarnClientImpl extends YarnClient {
   public ApplicationId
       submitApplication(ApplicationSubmissionContext appContext)
           throws YarnException, IOException {
+    // TODO 注释： 生成一个 ApplicationID
     ApplicationId applicationId = appContext.getApplicationId();
     if (applicationId == null) {
       throw new ApplicationIdNotProvidedException(
           "ApplicationId is not provided in ApplicationSubmissionContext");
     }
+    // TODO 注释： 生成一个提交 应用程序的 请求对象
     SubmitApplicationRequest request =
         Records.newRecord(SubmitApplicationRequest.class);
+    // TODO 注释： MRAppMaster 和 YARNChild 的启动命令都在里面
     request.setApplicationSubmissionContext(appContext);
 
     // Automatically add the timeline DT into the CLC
@@ -304,8 +317,15 @@ public class YarnClientImpl extends YarnClient {
     if (isSecurityEnabled() && timelineV1ServiceEnabled) {
       addTimelineDelegationToken(appContext.getAMContainerSpec());
     }
-
+    /*************************************************
+     * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+     *  注释： 真正的 RPC 请求了
+     *  真正执行 RPC 提交 Application 之前，做了两件事：
+     *  1、准备必要的执行 JOb 的信息和资源
+     *  2、初始化一个 客户端提交 RPC 请求
+     */
     //TODO: YARN-1763:Handle RM failovers during the submitApplication call.
+    //todo ClientRMService
     rmClient.submitApplication(request);
 
     int pollCount = 0;

@@ -16,6 +16,7 @@
 # limitations under the License.
 
 # The name of the script being executed.
+# hadoop命令
 HADOOP_SHELL_EXECNAME="hadoop"
 MYNAME="${BASH_SOURCE-$0}"
 

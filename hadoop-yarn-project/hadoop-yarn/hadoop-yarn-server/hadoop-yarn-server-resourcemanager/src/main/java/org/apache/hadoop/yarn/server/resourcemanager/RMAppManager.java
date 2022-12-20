@@ -353,7 +353,12 @@ public class RMAppManager implements EventHandler<RMAppManagerEvent>,
       ApplicationSubmissionContext submissionContext, long submitTime,
       String user) throws YarnException {
     ApplicationId applicationId = submissionContext.getApplicationId();
-
+    /*************************************************
+     * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+     *  注释： 生成 RMAppImpl 状态机，通过状态机来管理一个 Application 的运行状态
+     *  当创建一个状态机的时候，内部会注册很多的 状态转换四元组：
+     *  转换前状态，转换后状态，触发事件，Transition
+     */
     // Passing start time as -1. It will be eventually set in RMAppImpl
     // constructor.
     RMAppImpl application = createAndPopulateNewRMApp(
@@ -367,9 +372,19 @@ public class RMAppManager implements EventHandler<RMAppManagerEvent>,
                 application.getUser(),
                 BuilderUtils.parseTokensConf(submissionContext));
       } else {
+        /*************************************************
+         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释： 该处使用异步调度器和状态机模式，状态机的注册在 ResouceManger#serviceInit 方法中
+         *  rmDispatcher.register(RMAppEventType.class, new ApplicationEventDispatcher(rmContext));
+         *  1、this.rmContext.getDispatcher()   AsyncDispatcher
+         *  2、this.rmContext.getDispatcher().getEventHandler()   GenericEventHandler
+         *  3、GenericHandler.handler(RMAppEvent)   提交一个事件到 AsyncDispatcher 的内部队列中
+         */
         // Dispatcher is not yet started at this time, so these START events
         // enqueued should be guaranteed to be first processed when dispatcher
         // gets started.
+        //todo 遇到这种代码下一步找RMAppEventType对应的处理器handler
+        //todo rmDispatcher.register(RMAppEventType.class,new ApplicationEventDispatcher(rmContext));
         this.rmContext.getDispatcher().getEventHandler()
             .handle(new RMAppEvent(applicationId, RMAppEventType.START));
       }

@@ -138,13 +138,16 @@ class JobSubmitter {
    */
   JobStatus submitJobInternal(Job job, Cluster cluster) 
   throws ClassNotFoundException, InterruptedException, IOException {
-
+/*************************************************
+ * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+ *  注释： 检查 MR 的输出目录是否存在
+ */
     //validate the jobs output specs 
     checkSpecs(job);
 
     Configuration conf = job.getConfiguration();
     addMRFrameworkToDistributedCache(conf);
-
+    //todo "/tmp/hadoop-yarn/staging" ===> hdfs上的临时目录，用于存放job所需的conf、jar包等
     Path jobStagingArea = JobSubmissionFiles.getStagingDir(cluster, conf);
     //configure the command line options correctly on the submitting dfs
     InetAddress ip = InetAddress.getLocalHost();
@@ -154,8 +157,10 @@ class JobSubmitter {
       conf.set(MRJobConfig.JOB_SUBMITHOST,submitHostName);
       conf.set(MRJobConfig.JOB_SUBMITHOSTADDR,submitHostAddress);
     }
+    //todo 获取jobid
     JobID jobId = submitClient.getNewJobID();
     job.setJobID(jobId);
+    //todo 完整path
     Path submitJobDir = new Path(jobStagingArea, jobId.toString());
     JobStatus status = null;
     try {
@@ -190,14 +195,31 @@ class JobSubmitter {
         LOG.warn("Max job attempts set to 1 since encrypted intermediate" +
                 "data spill is enabled");
       }
-
+      /*************************************************
+       * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+       *  注释： 上传 job jar 以及依赖 jar 等， 创建工作目录
+       */
       copyAndConfigureFiles(job, submitJobDir);
-
+      /*************************************************
+       * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+       *  注释： job.xml 文件
+       */
       Path submitJobFile = JobSubmissionFiles.getJobConfPath(submitJobDir);
-      
+      /*************************************************
+       * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+       *  注释： 逻辑切片
+       *  返回的结果，就是一个 mapTask 的个数
+       *  事实上，这个方法的内部是调用 FileInputFormat.getSplits() = List<InptuSplit> splits
+       *  maps = splits.size();
+       *  InptuSplit 一个逻辑切片，就对应到一个 MapTask
+       *  内部得到一个 List<InptuSplit> splits
+       *  splits.size() = maps
+       *  InptuSplit  = 逻辑切片抽象 => 一个逻辑切片启动一个MapTask
+       */
       // Create the splits for the job
       LOG.debug("Creating splits at " + jtFs.makeQualified(submitJobDir));
       int maps = writeSplits(job, submitJobDir);
+      // TODO 注释： 根据逻辑切片的结果，就能知道 mapTask 的个数了。
       conf.setInt(MRJobConfig.NUM_MAPS, maps);
       LOG.info("number of splits:" + maps);
 
@@ -207,7 +229,7 @@ class JobSubmitter {
         throw new IllegalArgumentException("The number of map tasks " + maps +
             " exceeded limit " + maxMaps);
       }
-
+      // TODO 注释： 获取 job 的 queue 信息, 默认是 default 队列
       // write "queue admins of the queue to which job is being submitted"
       // to job file.
       String queue = conf.get(MRJobConfig.QUEUE_NAME,
@@ -240,7 +262,10 @@ class JobSubmitter {
       if (reservationId != null) {
         conf.set(MRJobConfig.RESERVATION_ID, reservationId.toString());
       }
-
+      /*************************************************
+       * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+       *  注释： 将 job.xml 文件写入 submit path dir
+       */
       // Write job file to submit dir
       writeConf(conf, submitJobFile);
       
@@ -248,6 +273,10 @@ class JobSubmitter {
       // Now, actually submit the job (using the submit name)
       //
       printTokens(jobId, job.getCredentials());
+      /*************************************************
+       * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+       *  注释： 提交 Job
+       */
       status = submitClient.submitJob(
           jobId, submitJobDir.toString(), job.getCredentials());
       if (status != null) {
@@ -306,7 +335,11 @@ class JobSubmitter {
     Configuration conf = job.getConfiguration();
     InputFormat<?, ?> input =
       ReflectionUtils.newInstance(job.getInputFormatClass(), conf);
-
+    /*************************************************
+     * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+     *  注释： 逻辑切片
+     *  真正的逻辑切片是由： FileInputFormat.getSplits(job); 完成
+     */
     List<InputSplit> splits = input.getSplits(job);
     T[] array = (T[]) splits.toArray(new InputSplit[splits.size()]);
 

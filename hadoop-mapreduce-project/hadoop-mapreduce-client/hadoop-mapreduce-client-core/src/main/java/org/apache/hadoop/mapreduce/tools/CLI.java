@@ -313,12 +313,28 @@ public class CLI extends Configured implements Tool {
     }
 
     // initialize cluster
+    /*************************************************
+     * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+     *  注释： 内部创建了一个 Client 和 ResourceManager 通信的 RPC 客户端
+     *  1、Cluster ==> YarnClientProtocolProvider ==> YarnRunner ==> YarnClientImpl ==> rmClient
+     *  -
+     *  JobClient 和 ResourceManager 之间的通信协议的代理对象： rmClient = ApplicatinClientProtocol 代理
+     *  Spark On YARN | Flink On YARN 提交： 都是通过 YarnClient 这个客户端完成提交的
+     *  -
+     *  构建 RPC 客户端，方便提交 Application 到 RM，
+     *  必然拿到的是 ApplicatoinClientProtocol 通信协议的代理对象
+     */
     cluster = createCluster();
         
     // Submit the request
     try {
+      /*************************************************
+       * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+       *  注释： 提交 job
+       */
       if (submitJobFile != null) {
         Job job = Job.getInstance(new JobConf(submitJobFile));
+        //todo 提交job
         job.submit();
         System.out.println("Created job " + job.getJobID());
         exitCode = 0;
@@ -516,6 +532,10 @@ public class CLI extends Configured implements Tool {
   }
 
   Cluster createCluster() throws IOException {
+    /*************************************************
+     * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+     *  注释：
+     */
     return new Cluster(getConf());
   }
   

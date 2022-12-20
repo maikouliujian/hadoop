@@ -381,6 +381,31 @@ public abstract class FileInputFormat<K, V> extends InputFormat<K, V> {
     return new FileSplit(file, start, length, hosts, inMemoryHosts);
   }
 
+  /*************************************************
+   * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+   *  注释：
+   *  一个 MR 的运行，必然要指定 输入目录，和 输出目录。
+   *  输入目录中，有可能会包含，多个文件，每个文件其实有多个数据块
+   *  按照正常的逻辑理解，肯定是一个数据块启动一个MapTask 就可以了。
+   *  流程：
+   *  1、获取输入目录中的所有文件
+   *  2、遍历每个文件，获取这个文件的 默认数据块大小，不同的文件，可能数据块大小不一样的
+   *  3、计算逻辑切片大小。一般来说，在没有修改参数的情况下，默认就是一个数据块一个逻辑切片
+   *  4、每个数据块就调用 makeSplit() 来创建一个 InputSplit 对象。然后加入到 splits 中
+   *  -
+   *  有一个细节：
+   *  如果某个文件中的最后一个数据块的大小不足默认数据块的 10%，那么这个文件的最后两个数据块，就成为一个逻辑切片
+   *  200M （Split1： 128M，  Split2: 72M）
+   *  260M （Split1： 128M，  Split2： 128M，  Split3： 4M）  xxxx
+   *  260M （Split1： 128M，  Split2： 132M）                 √√√√
+   *  -
+   *  得计算得到一个 逻辑切片大小
+   *  按照默认规则： 默认数据块的大小！  默认数据块的大小不一定是 128m ，集群中的所有文件的 数据块大小也不一定都是 128M
+   *  三个参数来决定：
+   *  1、dfs.blocksize  文件的切块大小 = 一般来说是 128M
+   *  2、maxSize = mapreduce.input.fileinputformat.split.maxsize = Long.MAX_VALUE
+   *  3、minSize = mapreduce.input.fileinputformat.split.minsize = 1
+   */
   /** 
    * Generate the list of files and make them into FileSplits.
    * @param job the job context
@@ -388,22 +413,34 @@ public abstract class FileInputFormat<K, V> extends InputFormat<K, V> {
    */
   public List<InputSplit> getSplits(JobContext job) throws IOException {
     StopWatch sw = new StopWatch().start();
+    // TODO 注释： 获取用于计算逻辑切片大小的两个配置参数
+    // TODO 注释： 如果需要调整逻辑切片的大小，就是通过这两个参数来调整的
+    // TODO 注释： mapreduce.input.fileinputformat.split.minsize = 1
+    // TODO 注释： mapreduce.input.fileinputformat.split.maxsize = Long.MAX_VALUE
     long minSize = Math.max(getFormatMinSplitSize(), getMinSplitSize(job));
     long maxSize = getMaxSplitSize(job);
 
     // generate splits
     List<InputSplit> splits = new ArrayList<InputSplit>();
+    // TODO 注释： 获取输入路径中的，所有文件
     List<FileStatus> files = listStatus(job);
 
     boolean ignoreDirs = !getInputDirRecursive(job)
       && job.getConfiguration().getBoolean(INPUT_DIR_NONRECURSIVE_IGNORE_SUBDIRS, false);
+    // TODO 注释： 遍历输入中的每个文件，开始执行逻辑切片了
+    // TODO 注释： 如果有10个文件，每个文件都是 10M ，会合并成一个逻辑切片么？ 不会！
+    // TODO 注释： 是在一个文件的最后一个数据块的大小不足这个文件的切块大小的10%，则这个文件的最后两个数据块，构建成一个逻辑切片
+    // TODO 注释： 逻辑切片不会跨文件！
+    // TODO 注释： 这个东西不是处理小文件的！
     for (FileStatus file: files) {
+      // TODO 注释： 如果忽略子文件夹
       if (ignoreDirs && file.isDirectory()) {
         continue;
       }
       Path path = file.getPath();
       long length = file.getLen();
       if (length != 0) {
+        // TODO 注释： 获取文件的块信息
         BlockLocation[] blkLocations;
         if (file instanceof LocatedFileStatus) {
           blkLocations = ((LocatedFileStatus) file).getBlockLocations();
@@ -411,11 +448,28 @@ public abstract class FileInputFormat<K, V> extends InputFormat<K, V> {
           FileSystem fs = path.getFileSystem(job.getConfiguration());
           blkLocations = fs.getFileBlockLocations(file, 0, length);
         }
+        /*************************************************
+         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释： 如果文件是可切分的
+         *  如果不能切分，则一个文件，单独成为一个逻辑切片
+         */
         if (isSplitable(job, path)) {
+          // TODO 注释： 获取文件的数据块大小，而不是配置中的 dfs.blocksize
           long blockSize = file.getBlockSize();
+          // TODO 注释： 计算逻辑切片大小： 三个值的中间值
+          // TODO 注释： 正常值：  minSize < blockSize < maxSize
+          // TODO 注释： 在没有进行参数修改的情况下： splitSize = blockSize = 文件的切块大小
+          // TODO 注释： 假设 blockSize = 128M
           long splitSize = computeSplitSize(blockSize, minSize, maxSize);
-
+          // TODO 注释： 进行逻辑切片
           long bytesRemaining = length;
+          // TODO 注释： 0-128M 第一个切片
+          // TODO 注释： 128 - 256M 第二个逻辑切片
+
+          // TODO 注释： bytesRemaining = 260M
+          // TODO 注释： bytesRemaining = 132M
+
+          // TODO 注释： 如果剩下的待切分的文件大小大于 blocksize * 1.1, 则进行切分，否则直接构建成一个逻辑切片
           while (((double) bytesRemaining)/splitSize > SPLIT_SLOP) {
             int blkIndex = getBlockIndex(blkLocations, length-bytesRemaining);
             splits.add(makeSplit(path, length-bytesRemaining, splitSize,
@@ -423,7 +477,8 @@ public abstract class FileInputFormat<K, V> extends InputFormat<K, V> {
                         blkLocations[blkIndex].getCachedHosts()));
             bytesRemaining -= splitSize;
           }
-
+          // TODO 注释： 如果 0 < bytesRemaining < blocksize * 1.1
+          // TODO 注释： 单独成为一个逻辑切片
           if (bytesRemaining != 0) {
             int blkIndex = getBlockIndex(blkLocations, length-bytesRemaining);
             splits.add(makeSplit(path, length-bytesRemaining, bytesRemaining,
@@ -431,6 +486,7 @@ public abstract class FileInputFormat<K, V> extends InputFormat<K, V> {
                        blkLocations[blkIndex].getCachedHosts()));
           }
         } else { // not splitable
+          // TODO 注释： 如果文件不可分，则直接将该文件构建成一个逻辑切片
           if (LOG.isDebugEnabled()) {
             // Log only if the file is big enough to be splitted
             if (length > Math.min(file.getBlockSize(), minSize)) {
@@ -441,11 +497,13 @@ public abstract class FileInputFormat<K, V> extends InputFormat<K, V> {
           splits.add(makeSplit(path, 0, length, blkLocations[0].getHosts(),
                       blkLocations[0].getCachedHosts()));
         }
-      } else { 
+      } else {
+        // TODO 注释： 为空文件，也构建了一个 逻辑切片。
         //Create empty hosts array for zero length files
         splits.add(makeSplit(path, 0, length, new String[0]));
       }
     }
+    // TODO 注释： 记录一下输入总文件数据，方便性能统计
     // Save the number of input files for metrics/loadgen
     job.getConfiguration().setLong(NUM_INPUT_FILES, files.size());
     sw.stop();

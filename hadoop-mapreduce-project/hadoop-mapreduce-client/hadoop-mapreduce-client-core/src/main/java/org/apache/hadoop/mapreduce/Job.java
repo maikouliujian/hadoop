@@ -1554,14 +1554,27 @@ public class Job extends JobContextImpl implements JobContext, AutoCloseable {
    */
   public void submit() 
          throws IOException, InterruptedException, ClassNotFoundException {
+    // TODO 注释： JobState 初始状态为 DEFINE
     ensureState(JobState.DEFINE);
+    // TODO 注释： 启用新 API（hadoop-1.x 和 hadoop-2.x ）
+    // TODO 注释： org.apache.hadoop.mapred.xxxx
+    // TODO 注释： org.apache.hadoop.mapreduce.xxx
     setUseNewAPI();
+    /*************************************************
+     * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+     *  注释： 客户端链接 ResourceManager
+     *  connect(); 和 刚才的 createCluster 是一样的
+     */
     connect();
     final JobSubmitter submitter = 
         getJobSubmitter(cluster.getFileSystem(), cluster.getClient());
     status = ugi.doAs(new PrivilegedExceptionAction<JobStatus>() {
       public JobStatus run() throws IOException, InterruptedException, 
       ClassNotFoundException {
+        /*************************************************
+         * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释： 真正提交！
+         */
         return submitter.submitJobInternal(Job.this, cluster);
       }
     });

@@ -150,6 +150,11 @@ public class YARNRunner implements ClientProtocol {
    * @param conf the configuration object for the client
    */
   public YARNRunner(Configuration conf) {
+    /*************************************************
+     * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+     *  注释： ResourceMgrDelegate 内部创建了一个 YarnClient，具体实现是： YarnClientImpl
+     *  Delegate: 代表; 会议代表
+     */
    this(conf, new ResourceMgrDelegate(new YarnConfiguration(conf)));
   }
 
@@ -321,12 +326,20 @@ public class YARNRunner implements ClientProtocol {
   throws IOException, InterruptedException {
     
     addHistoryToken(ts);
-
+    /*************************************************
+     * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+     *  注释： 组装得到启动类
+     *  todo 组装启动mrappmaster的java命令
+     */
     ApplicationSubmissionContext appContext =
       createApplicationSubmissionContext(conf, jobSubmitDir, ts);
 
     // Submit to ResourceManager
     try {
+      /*************************************************
+       * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+       *  注释： 提交 Application
+       */
       ApplicationId applicationId =
           resMgrDelegate.submitApplication(appContext);
 
@@ -387,8 +400,9 @@ public class YARNRunner implements ClientProtocol {
 
   private Map<String, LocalResource> setupLocalResources(Configuration jobConf,
       String jobSubmitDir) throws IOException {
+    // TODO 注释： LocalResource 资源容器
     Map<String, LocalResource> localResources = new HashMap<>();
-
+    // TODO 注释： job.xml 文件路径
     Path jobConfPath = new Path(jobSubmitDir, MRJobConfig.JOB_CONF_FILE);
 
     URL yarnUrlForJobSubmitDir = URL.fromPath(defaultFileContext
@@ -396,11 +410,12 @@ public class YARNRunner implements ClientProtocol {
             defaultFileContext.makeQualified(new Path(jobSubmitDir))));
     LOG.debug("Creating setup context, jobSubmitDir url is "
         + yarnUrlForJobSubmitDir);
-
+    // TODO 注释： job.xml => LocalResource
     localResources.put(MRJobConfig.JOB_CONF_FILE,
         createApplicationResource(defaultFileContext,
             jobConfPath, LocalResourceType.FILE));
     if (jobConf.get(MRJobConfig.JAR) != null) {
+      // TODO 注释： jar 包
       Path jobJarPath = new Path(jobConf.get(MRJobConfig.JAR));
       // We hard code the job.jar symlink because mapreduce code expects the
       // job.jar to be named that way.
@@ -420,6 +435,7 @@ public class YARNRunner implements ClientProtocol {
       String pattern = conf.getPattern(JobContext.JAR_UNPACK_PATTERN,
           JobConf.UNPACK_JAR_PATTERN_DEFAULT).pattern();
       rc.setPattern(pattern);
+      // TODO 注释： job.jar => LocalResource
       localResources.put(MRJobConfig.JOB_JAR, rc);
     } else {
       // Job jar may be null. For e.g, for pipes, the job jar is the hadoop
@@ -429,6 +445,7 @@ public class YARNRunner implements ClientProtocol {
     }
 
     // TODO gross hack
+    // TODO 注释： Job 的切片信息
     for (String s : new String[] {
         MRJobConfig.JOB_SPLIT,
         MRJobConfig.JOB_SPLIT_METAINFO }) {
@@ -495,8 +512,9 @@ public class YARNRunner implements ClientProtocol {
                 + TaskLog.LogName.PROFILE));
       }
     }
-
+    //todo MRAppMaster 主class
     vargs.add(MRJobConfig.APPLICATION_MASTER_CLASS);
+    // TODO 注释： 日志路径
     vargs.add("1>" + ApplicationConstants.LOG_DIR_EXPANSION_VAR +
         Path.SEPARATOR + ApplicationConstants.STDOUT);
     vargs.add("2>" + ApplicationConstants.LOG_DIR_EXPANSION_VAR +
@@ -568,7 +586,10 @@ public class YARNRunner implements ClientProtocol {
       Configuration jobConf, String jobSubmitDir, Credentials ts)
       throws IOException {
     ApplicationId applicationId = resMgrDelegate.getApplicationId();
-
+    /*************************************************
+     * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+     *  注释： 获取启动 Container 的一些必要本地资源，比如 job.xml 比如 splitInfo，比如 job jar 等
+     */
     // Setup LocalResources
     Map<String, LocalResource> localResources =
         setupLocalResources(jobConf, jobSubmitDir);
@@ -578,7 +599,10 @@ public class YARNRunner implements ClientProtocol {
     ts.writeTokenStorageToStream(dob);
     ByteBuffer securityTokens =
         ByteBuffer.wrap(dob.getData(), 0, dob.getLength());
-
+    /*************************************************
+     * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+     *  注释： 拼装得到启动 MRAppMaster 的命令
+     */
     // Setup ContainerLaunchContext for AM container
     List<String> vargs = setupAMCommand(jobConf);
     ContainerLaunchContext amContainer = setupContainerLaunchContextForAM(

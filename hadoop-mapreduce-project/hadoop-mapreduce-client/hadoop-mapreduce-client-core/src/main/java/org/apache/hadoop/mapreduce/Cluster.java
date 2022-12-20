@@ -106,12 +106,16 @@ public class Cluster {
       throws IOException {
     this.conf = conf;
     this.ugi = UserGroupInformation.getCurrentUser();
+    /*************************************************
+     * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+     *  注释：
+     */
     initialize(jobTrackAddr, conf);
   }
-  
+  // TODO 注释： jobTrackAddr = null
   private void initialize(InetSocketAddress jobTrackAddr, Configuration conf)
       throws IOException {
-
+    // TODO 注释： 初始化得到所有 ClientProtocolProvider
     initProviderList();
     final IOException initEx = new IOException(
         "Cannot initialize Cluster. Please check your configuration for "
@@ -127,12 +131,19 @@ public class Cluster {
       ClientProtocol clientProtocol = null;
       try {
         if (jobTrackAddr == null) {
+          /*************************************************
+           * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+           *  注释：
+           *  1、mapreduce.framework.name = local ==> LocalRunner
+           *  2、mapreduce.framework.name = yarn  ==> YARNRunner
+           */
           clientProtocol = provider.create(conf);
         } else {
           clientProtocol = provider.create(jobTrackAddr, conf);
         }
 
         if (clientProtocol != null) {
+          // TODO 注释： clientProtocolProvider = YarnClientProtocolProvider
           clientProtocolProvider = provider;
           client = clientProtocol;
           LOG.debug("Picked " + provider.getClass().getName()

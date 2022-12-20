@@ -584,9 +584,24 @@ public class ClientRMService extends AbstractService implements
     return response;
   }
 
+  /*************************************************
+   * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+   *  注释： 这儿的代码是在 RM 中执行的
+   *  ApplicationSubmissionContext 这个上下文对象，包含了这个 Application 执行所需要的一切的信息
+   *  -
+   *  job.xml  配置， 逻辑切片，jar包，依赖jar，....
+   *  找一个重点： 启动类到底是谁！
+   *  MapReduce On YARN 运行的时候：
+   *      1、ApplicationMaster： MRAppMaster
+   *      2、Task： YarnChild
+   */
   @Override
   public SubmitApplicationResponse submitApplication(
       SubmitApplicationRequest request) throws YarnException, IOException {
+    /*************************************************
+     * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+     *  注释： 上下文对象 submissionContext
+     */
     ApplicationSubmissionContext submissionContext = request
         .getApplicationSubmissionContext();
     ApplicationId applicationId = submissionContext.getApplicationId();
@@ -596,7 +611,10 @@ public class ClientRMService extends AbstractService implements
     // those fields that are independent of the RM's configuration will be
     // checked here, those that are dependent on RM configuration are validated
     // in RMAppManager.
-
+    /*************************************************
+     * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+     *  注释： 验证权限信息
+     */
     String user = null;
     try {
       // Safety
@@ -611,7 +629,10 @@ public class ClientRMService extends AbstractService implements
     }
 
     checkTags(submissionContext.getApplicationTags());
-
+    /*************************************************
+     * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+     *  注释： timeline 服务
+     */
     if (timelineServiceV2Enabled) {
       // Sanity check for flow run
       String value = null;
@@ -636,14 +657,20 @@ public class ClientRMService extends AbstractService implements
         throw RPCUtil.getRemoteException(e);
       }
     }
-
+    /*************************************************
+     * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+     *  注释： 检测 app 是否已经放入到 rmContext 如果已经提交过了,直接返回一个空的响应
+     */
     // Check whether app has already been put into rmContext,
     // If it is, simply return the response
     if (rmContext.getRMApps().get(applicationId) != null) {
       LOG.info("This is an earlier submitted application: " + applicationId);
       return SubmitApplicationResponse.newInstance();
     }
-
+    /*************************************************
+     * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+     *  注释： 获取 token配置 信息
+     */
     ByteBuffer tokenConf =
         submissionContext.getAMContainerSpec().getTokensConf();
     if (tokenConf != null) {
@@ -659,6 +686,10 @@ public class ClientRMService extends AbstractService implements
                 + tokenConf.capacity() + " bytes.");
       }
     }
+    /*************************************************
+     * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+     *  注释： 设置队列, 默认 : default
+     */
     if (submissionContext.getQueue() == null) {
       submissionContext.setQueue(YarnConfiguration.DEFAULT_QUEUE_NAME);
     }
@@ -676,10 +707,16 @@ public class ClientRMService extends AbstractService implements
             YarnConfiguration.APPLICATION_TYPE_LENGTH));
       }
     }
-
+    /*************************************************
+     * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+     *  注释： 获取预留资源 id
+     */
     ReservationId reservationId = request.getApplicationSubmissionContext()
             .getReservationID();
-
+    /*************************************************
+     * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+     *  注释： 检测权限
+     */
     checkReservationACLs(submissionContext.getQueue(), AuditConstants
             .SUBMIT_RESERVATION_REQUEST, reservationId);
 
@@ -689,10 +726,18 @@ public class ClientRMService extends AbstractService implements
     }
 
     try {
+      /*************************************************
+       * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+       *  注释： 请求 RMAppManager 提交 application
+       *  rmAppManager 是存在越 RM 的内部，用来用 App 管理的
+       */
       // call RMAppManager to submit application directly
       rmAppManager.submitApplication(submissionContext,
           System.currentTimeMillis(), user);
-
+      /*************************************************
+       * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+       *  注释： 审计 打印日志
+       */
       LOG.info("Application with id " + applicationId.getId() + 
           " submitted by user " + user);
       RMAuditLogger.logSuccess(user, AuditConstants.SUBMIT_APP_REQUEST,
