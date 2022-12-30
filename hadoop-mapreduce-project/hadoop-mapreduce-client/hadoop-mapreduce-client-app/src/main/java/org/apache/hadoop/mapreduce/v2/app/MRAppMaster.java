@@ -443,6 +443,7 @@ public class MRAppMaster extends CompositeService {
       //service to log job history events
       EventHandler<JobHistoryEvent> historyService = 
         createJobHistoryHandler(context);
+      //todo 注册
       dispatcher.register(org.apache.hadoop.mapreduce.jobhistory.EventType.class,
           historyService);
 

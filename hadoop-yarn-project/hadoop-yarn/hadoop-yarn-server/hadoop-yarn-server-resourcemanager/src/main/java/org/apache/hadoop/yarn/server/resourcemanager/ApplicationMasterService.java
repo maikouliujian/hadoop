@@ -108,6 +108,7 @@ public class ApplicationMasterService extends AbstractService implements
   public ApplicationMasterService(String name, RMContext rmContext,
       YarnScheduler scheduler) {
     super(name);
+    // TODO 注释： 获取 AMLivelinessMonitor， 它是 ApplicationMasterService 的成员变量
     this.amLivelinessMonitor = rmContext.getAMLivelinessMonitor();
     this.rScheduler = scheduler;
     this.rmContext = rmContext;
@@ -116,6 +117,7 @@ public class ApplicationMasterService extends AbstractService implements
 
   @Override
   protected void serviceInit(Configuration conf) throws Exception {
+    // TODO 注释： 绑定端口号： 8030
     masterServiceAddress = conf.getSocketAddr(
         YarnConfiguration.RM_BIND_HOST,
         YarnConfiguration.RM_SCHEDULER_ADDRESS,
@@ -190,6 +192,10 @@ public class ApplicationMasterService extends AbstractService implements
     serverConf.set(
         CommonConfigurationKeysPublic.HADOOP_SECURITY_AUTHENTICATION,
         SaslRpcServer.AuthMethod.TOKEN.toString());
+    /*************************************************
+     * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+     *  注释： 初始化 RPC Server
+     */
     this.server = getServer(rpc, serverConf, masterServiceAddress,
         this.rmContext.getAMRMTokenSecretManager());
     // TODO more exceptions could be added later.
@@ -209,7 +215,10 @@ public class ApplicationMasterService extends AbstractService implements
       }
       refreshServiceAcls(conf, RMPolicyProvider.getInstance());
     }
-
+    /*************************************************
+     * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+     *  注释： 启动 RPCServer
+     */
     this.server.start();
     this.masterServiceAddress =
         conf.updateConnectAddr(YarnConfiguration.RM_BIND_HOST,

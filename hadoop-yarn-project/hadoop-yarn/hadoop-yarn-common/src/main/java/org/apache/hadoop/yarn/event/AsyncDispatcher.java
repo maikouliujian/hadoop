@@ -232,7 +232,7 @@ public class AsyncDispatcher extends AbstractService implements Dispatcher {
       LOG.debug("Dispatching the event " + event.getClass().getName() + "."
           + event.toString());
     }
-
+    //todo 获取事件类型
     Class<? extends Enum> type = event.getType().getDeclaringClass();
 
     try{

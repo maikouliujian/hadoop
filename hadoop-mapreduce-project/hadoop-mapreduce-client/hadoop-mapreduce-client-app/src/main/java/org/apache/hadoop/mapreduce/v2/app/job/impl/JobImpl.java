@@ -241,7 +241,7 @@ public class JobImpl implements org.apache.hadoop.mapreduce.v2.app.job.Job,
       new CounterUpdateTransition();
   private static final UpdatedNodesTransition UPDATED_NODES_TRANSITION =
       new UpdatedNodesTransition();
-
+  //todo 状态机
   protected static final
     StateMachineFactory<JobImpl, JobStateInternal, JobEventType, JobEvent> 
        stateMachineFactory
@@ -1007,11 +1007,13 @@ public class JobImpl implements org.apache.hadoop.mapreduce.v2.app.job.Job,
       writeLock.lock();
       JobStateInternal oldState = getInternalState();
       try {
+        //todo 进行当前状态转换
          getStateMachine().doTransition(event.getType(), event);
       } catch (InvalidStateTransitionException e) {
         LOG.error("Can't handle this event at current state", e);
         addDiagnostic("Invalid event " + event.getType() + 
             " on Job " + this.jobId);
+        //todo 进行下一次状态转换
         eventHandler.handle(new JobEvent(this.jobId,
             JobEventType.INTERNAL_ERROR));
       }

@@ -104,17 +104,28 @@ public class AMLauncher implements Runnable {
 
     containerMgrProxy = getContainerMgrProxy(masterContainerID);
   }
-
+  /*************************************************
+   * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+   *  注释： 正儿八经启动 AM 的逻辑！
+   */
   private void launch() throws IOException, YarnException {
+    // TODO 注释： 链接对应 NodeManager，其实是获取 rpc 客户端
     connect();
     ContainerId masterContainerID = masterContainer.getId();
     ApplicationSubmissionContext applicationContext =
         application.getSubmissionContext();
     LOG.info("Setting up container " + masterContainer
         + " for AM " + application.getAppAttemptId());
+    /*************************************************
+     * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+     *  注释： 构建 ContainerLaunchContext 上下文对象
+     */
     ContainerLaunchContext launchContext =
         createAMContainerLaunchContext(applicationContext, masterContainerID);
-
+    /*************************************************
+     * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+     *  注释： 构建 request
+     */
     StartContainerRequest scRequest =
         StartContainerRequest.newInstance(launchContext,
           masterContainer.getContainerToken());

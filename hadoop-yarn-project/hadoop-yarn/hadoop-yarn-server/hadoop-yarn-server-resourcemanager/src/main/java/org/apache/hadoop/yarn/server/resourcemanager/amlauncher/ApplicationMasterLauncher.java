@@ -34,7 +34,13 @@ import org.apache.hadoop.yarn.event.EventHandler;
 import org.apache.hadoop.yarn.server.resourcemanager.RMContext;
 import org.apache.hadoop.yarn.server.resourcemanager.rmapp.attempt.RMAppAttempt;
 
-
+/*************************************************
+ * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+ *  注释：
+ *  1、一个是队列 masterEvents（）
+ *  2、一个是线程 launcherHandlingThread = LauncherThread 消费队列，执行任务，启动 ApplicatoinMaster
+ *  任务就是： AMLauncher ， 用来启动 ApplicationMaster
+ */
 public class ApplicationMasterLauncher extends AbstractService implements
     EventHandler<AMLauncherEvent> {
   private static final Logger LOG = LoggerFactory.getLogger(
@@ -50,9 +56,16 @@ public class ApplicationMasterLauncher extends AbstractService implements
   public ApplicationMasterLauncher(RMContext context) {
     super(ApplicationMasterLauncher.class.getName());
     this.context = context;
+    /*************************************************
+     * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+     *  注释： 初始化一个 LauncherThread
+     */
     this.launcherHandlingThread = new LauncherThread();
   }
-  
+  /*************************************************
+   * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+   *  注释： AMLauncher 内部有一个线程池，这个线程池的目的，就是为每一个 AM 的启动，启动一个专门的线程来负责启动
+   */
   @Override
   protected void serviceInit(Configuration conf) throws Exception {
     int threadCount = conf.getInt(
@@ -61,35 +74,60 @@ public class ApplicationMasterLauncher extends AbstractService implements
     ThreadFactory tf = new ThreadFactoryBuilder()
         .setNameFormat("ApplicationMasterLauncher #%d")
         .build();
+    /*************************************************
+     * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+     *  注释： 用来启动 ApplicationMaster 的线程池
+     */
     launcherPool = new ThreadPoolExecutor(threadCount, threadCount, 1,
         TimeUnit.HOURS, new LinkedBlockingQueue<Runnable>());
     launcherPool.setThreadFactory(tf);
 
     Configuration newConf = new YarnConfiguration(conf);
+    // TODO 注释： 重试次数：默认 10
     newConf.setInt(CommonConfigurationKeysPublic.
             IPC_CLIENT_CONNECT_MAX_RETRIES_ON_SOCKET_TIMEOUTS_KEY,
         conf.getInt(YarnConfiguration.RM_NODEMANAGER_CONNECT_RETRIES,
             YarnConfiguration.DEFAULT_RM_NODEMANAGER_CONNECT_RETRIES));
+    // TODO 注释： 设置参数
     setConfig(newConf);
     super.serviceInit(newConf);
   }
 
   @Override
   protected void serviceStart() throws Exception {
+
+    /*************************************************
+     * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+     *  注释： 启动 LauncherThread
+     */
     launcherHandlingThread.start();
     super.serviceStart();
   }
   
   protected Runnable createRunnableLauncher(RMAppAttempt application, 
       AMLauncherEventType event) {
+    /*************************************************
+     * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+     *  注释： 创建 AMLauncher
+     */
     Runnable launcher =
         new AMLauncher(context, application, event, getConfig());
     return launcher;
   }
   
   private void launch(RMAppAttempt application) {
+    /*************************************************
+     * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+     *  注释： 创建一个 ApplicationMaster Launcher
+     *  将来会通过一个 EventHandler 来执行这个事件：AMLauncherEventType.LAUNCH 的处理
+     */
     Runnable launcher = createRunnableLauncher(application, 
         AMLauncherEventType.LAUNCH);
+    /*************************************************
+     * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+     *  注释： 加入队列
+     *  将 Runnable launcher 加入队列，则等待，处理线程 LauncherThread 来处理
+     */
     masterEvents.add(launcher);
   }
   
@@ -137,6 +175,10 @@ public class ApplicationMasterLauncher extends AbstractService implements
     RMAppAttempt application = appEvent.getAppAttempt();
     switch (event) {
     case LAUNCH:
+      /*************************************************
+       * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+       *  注释： 要通过 ApplicatoinMasterLauncher 来启动一个 ApplicationMaster
+       */
       launch(application);
       break;
     case CLEANUP:

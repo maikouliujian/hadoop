@@ -32,6 +32,7 @@ import org.apache.hadoop.io.Writable;
 @InterfaceAudience.Private
 @InterfaceStability.Unstable
 public class JvmTask implements Writable {
+  //todo maptask or reducetask
   Task t;
   boolean shouldDie;
   public JvmTask(Task t, boolean shouldDie) {

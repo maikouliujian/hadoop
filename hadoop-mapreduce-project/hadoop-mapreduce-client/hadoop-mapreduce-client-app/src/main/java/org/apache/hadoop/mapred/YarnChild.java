@@ -69,7 +69,10 @@ class YarnChild {
   private static final Logger LOG = LoggerFactory.getLogger(YarnChild.class);
 
   static volatile TaskAttemptID taskid = null;
-
+  /*************************************************
+   * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+   *  注释： JVM 启动好了，来执行一个 Task
+   */
   public static void main(String[] args) throws Throwable {
     Thread.setDefaultUncaughtExceptionHandler(new YarnUncaughtExceptionHandler());
     LOG.debug("Child starting");
@@ -108,6 +111,7 @@ class YarnChild {
     Token<JobTokenIdentifier> jt = TokenCache.getJobToken(credentials);
     SecurityUtil.setTokenService(jt, address);
     taskOwner.addToken(jt);
+    // TODO 注释： 获取一个 MRAppMaster 和 YarnChild 之间进行通信的 RPC 协议代理
     final TaskUmbilicalProtocol umbilical =
       taskOwner.doAs(new PrivilegedExceptionAction<TaskUmbilicalProtocol>() {
       @Override
@@ -133,6 +137,8 @@ class YarnChild {
         LOG.info("Sleeping for " + sleepTimeMilliSecs
             + "ms before retrying again. Got null now.");
         MILLISECONDS.sleep(sleepTimeMilliSecs);
+        // TODO 注释： 获取一个 要执行的 Task
+        // TODO 注释： 这句代码就是获取一个要执行的 Task（MapTask  ReduceTask）
         myTask = umbilical.getTask(context);
       }
       if (myTask.shouldDie()) {
@@ -171,6 +177,10 @@ class YarnChild {
           // use job-specified working directory
           setEncryptedSpillKeyIfRequired(taskFinal);
           FileSystem.get(job).setWorkingDirectory(job.getWorkingDirectory());
+          /*************************************************
+           * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+           *  注释： MapTask 或者 ReduceTask 就启动起来了。
+           */
           taskFinal.run(job, umbilical); // run the task
           return null;
         }

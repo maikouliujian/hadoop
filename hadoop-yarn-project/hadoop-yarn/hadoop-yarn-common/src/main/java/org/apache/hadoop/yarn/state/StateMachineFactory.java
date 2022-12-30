@@ -54,6 +54,7 @@ final public class StateMachineFactory
   /*************************************************
    * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
    *  注释： 状态拓扑表，为了提高检索状态对应的过渡 map 而冗余的数据结构，此结构在 optimized 为真时，通过对 transitionsListNode 链表进行处理产生
+   *  OPERAND：操作数; 运算数;
    */
   private Map<STATE, Map<EVENTTYPE,
     Transition<OPERAND, STATE, EVENTTYPE, EVENT>>> stateMachineTable;
@@ -92,6 +93,7 @@ final public class StateMachineFactory
     this.transitionsListNode = that.transitionsListNode;
     this.optimized = optimized;
     if (optimized) {
+      //todo 构建状态机表
       makeStateMachineTable();
     } else {
       stateMachineTable = null;
@@ -291,6 +293,7 @@ final public class StateMachineFactory
   }
 
   /**
+   * todo 做状态转换
    * Effect a transition due to the effecting stimulus.
    * @param state current state
    * @param eventType trigger to initiate the transition
@@ -308,6 +311,7 @@ final public class StateMachineFactory
     if (transitionMap != null) {
       Transition<OPERAND, STATE, EVENTTYPE, EVENT> transition
           = transitionMap.get(eventType);
+      //todo 找到对应的transition
       if (transition != null) {
         return transition.doTransition(operand, oldState, event, eventType);
       }
@@ -334,7 +338,7 @@ final public class StateMachineFactory
     //  expect most of the states to have at least one transition.
     // TODO 注释： 状态表的定义：
     // TODO 注释： key = preState，
-    //            value = Map<EVENTTYPE, Transition>
+    //            value = Map<EVENTTYPE, Transition> 【Transition为一次转换的定义】
     //                 1、key = EVENTTYPE 事件类型
     //                 2、value = Transition<OPERAND【状态实体】, STATE【转换后状态】, EVENTTYPE【事件类型】, EVENT【事件】>
     stateMachineTable
