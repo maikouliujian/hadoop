@@ -264,6 +264,7 @@ public abstract class TaskAttemptImpl implements
          DIAGNOSTIC_INFORMATION_UPDATE_TRANSITION)
 
      // Transitions from the UNASSIGNED state.
+          //todo 构建yarnchild启动类
      .addTransition(TaskAttemptStateInternal.UNASSIGNED,
          TaskAttemptStateInternal.ASSIGNED, TaskAttemptEventType.TA_ASSIGNED,
          new ContainerAssignedTransition())
@@ -1136,7 +1137,7 @@ public abstract class TaskAttemptImpl implements
       myEnv.put(Environment.CLASSPATH_PREPEND_DISTCACHE.name(), "true");
     }
     MapReduceChildJVM.setVMEnv(myEnv, remoteTask);
-
+    //todo 构建YarnChild的启动命令
     // Set up the launch command
     List<String> commands = MapReduceChildJVM.getVMCommand(
         taskAttemptListener.getAddress(), remoteTask, jvmID);
@@ -1891,11 +1892,12 @@ public abstract class TaskAttemptImpl implements
           new WrappedJvmID(taskAttempt.remoteTask.getTaskID().getJobID(),
               taskAttempt.remoteTask.isMapTask(),
               taskAttempt.container.getId().getContainerId());
+      //todo 注册jvmid和task之间的mapping关系
       taskAttempt.taskAttemptListener.registerPendingTask(
           taskAttempt.remoteTask, taskAttempt.jvmID);
 
       taskAttempt.computeRackAndLocality();
-      
+      //todo 构建YarnChild启动命令
       //launch the container
       //create the container object to be launched for a given Task attempt
       ContainerLaunchContext launchContext = createContainerLaunchContext(

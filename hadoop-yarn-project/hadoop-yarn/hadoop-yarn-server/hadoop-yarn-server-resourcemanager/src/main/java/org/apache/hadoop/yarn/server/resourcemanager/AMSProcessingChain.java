@@ -75,6 +75,7 @@ class AMSProcessingChain implements ApplicationMasterServiceProcessor {
       ApplicationMasterServiceProcessor processor) {
     LOG.info("Adding [" + processor.getClass().getName() + "] tp top of" +
         " AMS Processing chain. ");
+    //todo 将processor添加到链表头
     processor.init(this.rmContext, this.head);
     this.head = processor;
   }

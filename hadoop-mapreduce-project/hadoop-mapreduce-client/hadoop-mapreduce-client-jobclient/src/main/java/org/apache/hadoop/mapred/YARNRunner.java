@@ -151,7 +151,7 @@ public class YARNRunner implements ClientProtocol {
    */
   public YARNRunner(Configuration conf) {
     /*************************************************
-     * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+     * TODO 马中华 https://blog.csdn.net/zhongqi2513
      *  注释： ResourceMgrDelegate 内部创建了一个 YarnClient，具体实现是： YarnClientImpl
      *  Delegate: 代表; 会议代表
      */
@@ -327,7 +327,7 @@ public class YARNRunner implements ClientProtocol {
     
     addHistoryToken(ts);
     /*************************************************
-     * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+     * TODO 马中华 https://blog.csdn.net/zhongqi2513
      *  注释： 组装得到启动类
      *  todo 组装启动mrappmaster的java命令
      */
@@ -337,7 +337,7 @@ public class YARNRunner implements ClientProtocol {
     // Submit to ResourceManager
     try {
       /*************************************************
-       * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+       * TODO 马中华 https://blog.csdn.net/zhongqi2513
        *  注释： 提交 Application
        */
       ApplicationId applicationId =
@@ -587,7 +587,7 @@ public class YARNRunner implements ClientProtocol {
       throws IOException {
     ApplicationId applicationId = resMgrDelegate.getApplicationId();
     /*************************************************
-     * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+     * TODO 马中华 https://blog.csdn.net/zhongqi2513
      *  注释： 获取启动 Container 的一些必要本地资源，比如 job.xml 比如 splitInfo，比如 job jar 等
      */
     // Setup LocalResources
@@ -600,8 +600,9 @@ public class YARNRunner implements ClientProtocol {
     ByteBuffer securityTokens =
         ByteBuffer.wrap(dob.getData(), 0, dob.getLength());
     /*************************************************
-     * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+     * TODO 马中华 https://blog.csdn.net/zhongqi2513
      *  注释： 拼装得到启动 MRAppMaster 的命令
+     *  //todo 启动mrappmaster的命令是在客户端组装好传给rm的
      */
     // Setup ContainerLaunchContext for AM container
     List<String> vargs = setupAMCommand(jobConf);

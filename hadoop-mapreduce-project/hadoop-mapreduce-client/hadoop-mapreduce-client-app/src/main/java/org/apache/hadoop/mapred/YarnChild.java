@@ -138,7 +138,7 @@ class YarnChild {
             + "ms before retrying again. Got null now.");
         MILLISECONDS.sleep(sleepTimeMilliSecs);
         // TODO 注释： 获取一个 要执行的 Task
-        // TODO 注释： 这句代码就是获取一个要执行的 Task（MapTask  ReduceTask）
+        // TODO 注释： 这句代码就是与mrappmaster通信,获取一个要执行的 Task（MapTask  ReduceTask）
         myTask = umbilical.getTask(context);
       }
       if (myTask.shouldDie()) {

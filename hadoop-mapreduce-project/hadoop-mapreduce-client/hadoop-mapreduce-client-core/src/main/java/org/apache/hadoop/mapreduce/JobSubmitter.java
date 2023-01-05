@@ -139,7 +139,7 @@ class JobSubmitter {
   JobStatus submitJobInternal(Job job, Cluster cluster) 
   throws ClassNotFoundException, InterruptedException, IOException {
 /*************************************************
- * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+ * TODO 马中华 https://blog.csdn.net/zhongqi2513
  *  注释： 检查 MR 的输出目录是否存在
  */
     //validate the jobs output specs 
@@ -196,17 +196,17 @@ class JobSubmitter {
                 "data spill is enabled");
       }
       /*************************************************
-       * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+       * TODO 马中华 https://blog.csdn.net/zhongqi2513
        *  注释： 上传 job jar 以及依赖 jar 等， 创建工作目录
        */
       copyAndConfigureFiles(job, submitJobDir);
       /*************************************************
-       * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+       * TODO 马中华 https://blog.csdn.net/zhongqi2513
        *  注释： job.xml 文件
        */
       Path submitJobFile = JobSubmissionFiles.getJobConfPath(submitJobDir);
       /*************************************************
-       * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+       * TODO 马中华 https://blog.csdn.net/zhongqi2513
        *  注释： 逻辑切片
        *  返回的结果，就是一个 mapTask 的个数
        *  事实上，这个方法的内部是调用 FileInputFormat.getSplits() = List<InptuSplit> splits
@@ -263,7 +263,7 @@ class JobSubmitter {
         conf.set(MRJobConfig.RESERVATION_ID, reservationId.toString());
       }
       /*************************************************
-       * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+       * TODO 马中华 https://blog.csdn.net/zhongqi2513
        *  注释： 将 job.xml 文件写入 submit path dir
        */
       // Write job file to submit dir
@@ -274,7 +274,7 @@ class JobSubmitter {
       //
       printTokens(jobId, job.getCredentials());
       /*************************************************
-       * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+       * TODO 马中华 https://blog.csdn.net/zhongqi2513
        *  注释： 提交 Job
        */
       status = submitClient.submitJob(
@@ -336,7 +336,7 @@ class JobSubmitter {
     InputFormat<?, ?> input =
       ReflectionUtils.newInstance(job.getInputFormatClass(), conf);
     /*************************************************
-     * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+     * TODO 马中华 https://blog.csdn.net/zhongqi2513
      *  注释： 逻辑切片
      *  真正的逻辑切片是由： FileInputFormat.getSplits(job); 完成
      */

@@ -93,6 +93,7 @@ import org.slf4j.LoggerFactory;
 
 /**
  * Allocates the container from the ResourceManager scheduler.
+ * todo 注释： 真正完成 Contianer 申请的组件！
  */
 public class RMContainerAllocator extends RMContainerRequestor
     implements ContainerAllocator {
@@ -200,6 +201,7 @@ public class RMContainerAllocator extends RMContainerRequestor
     this.preemptionPolicy = preemptionPolicy;
     this.stopped = new AtomicBoolean(false);
     this.clock = context.getClock();
+    //todo 分别维护了maptasks和reducetasks对应的container的数据结构
     this.assignedRequests = createAssignedRequests();
   }
 
@@ -210,6 +212,7 @@ public class RMContainerAllocator extends RMContainerRequestor
   @Override
   protected void serviceInit(Configuration conf) throws Exception {
     super.serviceInit(conf);
+    // TODO 注释： 各种参数
     reduceSlowStart = conf.getFloat(
         MRJobConfig.COMPLETED_MAPS_FOR_REDUCE_SLOWSTART, 
         DEFAULT_COMPLETED_MAPS_PERCENT_FOR_REDUCE_SLOWSTART);
@@ -225,11 +228,13 @@ public class RMContainerAllocator extends RMContainerRequestor
     reducerNoHeadroomPreemptionDelayMs = conf.getInt(
         MRJobConfig.MR_JOB_REDUCER_PREEMPT_DELAY_SEC,
         MRJobConfig.DEFAULT_MR_JOB_REDUCER_PREEMPT_DELAY_SEC) * 1000;//sec -> ms
+    // TODO 注释： 最大同时运行的 mapTask 和 reduceTask 的数量
     maxRunningMaps = conf.getInt(MRJobConfig.JOB_RUNNING_MAP_LIMIT,
         MRJobConfig.DEFAULT_JOB_RUNNING_MAP_LIMIT);
     maxRunningReduces = conf.getInt(MRJobConfig.JOB_RUNNING_REDUCE_LIMIT,
         MRJobConfig.DEFAULT_JOB_RUNNING_REDUCE_LIMIT);
     RackResolver.init(conf);
+    // TODO 注释： 6min = 360s
     retryInterval = getConfig().getLong(MRJobConfig.MR_AM_TO_RM_WAIT_INTERVAL_MS,
                                 MRJobConfig.DEFAULT_MR_AM_TO_RM_WAIT_INTERVAL_MS);
     mapNodeLabelExpression = conf.get(MRJobConfig.MAP_NODE_LABEL_EXP);
@@ -237,6 +242,7 @@ public class RMContainerAllocator extends RMContainerRequestor
     // Init startTime to current time. If all goes well, it will be reset after
     // first attempt to contact RM.
     retrystartTime = System.currentTimeMillis();
+    // TODO 注释： 默认是 0
     this.scheduledRequests.setNumOpportunisticMapsPercent(
         conf.getInt(MRJobConfig.MR_NUM_OPPORTUNISTIC_MAPS_PERCENT,
             MRJobConfig.DEFAULT_MR_NUM_OPPORTUNISTIC_MAPS_PERCENT));
@@ -246,6 +252,7 @@ public class RMContainerAllocator extends RMContainerRequestor
 
   @Override
   protected void serviceStart() throws Exception {
+    // TODO 注释： 创建事件处理线程
     this.eventHandlingThread = new Thread() {
       @SuppressWarnings("unchecked")
       @Override
@@ -255,6 +262,10 @@ public class RMContainerAllocator extends RMContainerRequestor
 
         while (!stopped.get() && !Thread.currentThread().isInterrupted()) {
           try {
+            /*************************************************
+             * TODO 马中华 https://blog.csdn.net/zhongqi2513
+             *  注释： Launch 加载动作 MapTask 或者 ReduceTask 要执行
+             */
             event = RMContainerAllocator.this.eventQueue.take();
           } catch (InterruptedException e) {
             if (!stopped.get()) {
@@ -264,6 +275,10 @@ public class RMContainerAllocator extends RMContainerRequestor
           }
 
           try {
+            /*************************************************
+             * TODO 马中华 https://blog.csdn.net/zhongqi2513
+             *  注释： 处理事件
+             */
             handleEvent(event);
           } catch (Throwable t) {
             LOG.error("Error in handling event type " + event.getType()
@@ -276,6 +291,7 @@ public class RMContainerAllocator extends RMContainerRequestor
         }
       }
     };
+    // TODO 注释： 启动事件处理线程
     this.eventHandlingThread.start();
     super.serviceStart();
   }
@@ -283,11 +299,33 @@ public class RMContainerAllocator extends RMContainerRequestor
   @Override
   protected synchronized void heartbeat() throws Exception {
     scheduleStats.updateAndLogIfChanged("Before Scheduling: ");
+    /*************************************************
+     * TODO 马中华 https://blog.csdn.net/zhongqi2513
+     *  注释： 申请 Container
+     *  之后的分派，就是  完成 ContainerRequest 和 Container 之间的映射！
+     */
     List<Container> allocatedContainers = getResources();
     if (allocatedContainers != null && allocatedContainers.size() > 0) {
+      // TODO 注释： 分配 Container
+      /*************************************************
+       * TODO 马中华 https://blog.csdn.net/zhongqi2513
+       *  注释：
+       *  1、scheduledRequests 是一个数据结构： 装的是 MapTask 或者 ReduceTask 的 Cotainer 申请请求
+       *  2、在这之前 ，有一个心跳线程，每隔 1s 钟，在申请 Container
+       *  考虑数据本地性！
+       *  最开始： 逻辑切片！ InputSplit： file  startOffset, endOffset, blockID, hosts === 申请一个 Contianer
+       *  最后： allocatedContainers 中的每个 Container 必然包含： contianerID, hostname, prot ....
+       *  最终的条件： 只要 Container 的 host 等于 InputSplit 的一个host 即可！
+       *  纪要考虑 node 本地性，还要考虑 rack 本地性，等等
+       */
       scheduledRequests.assign(allocatedContainers);
     }
-
+    // TODO 注释： allocatedContainers 这个是集群能提供的所有的 Container
+    // TODO 注释： 什么是 Container ？  资源单位，逻辑概念
+    // TODO 注释： 只要 RM 给你，意味着，这个资源理论上来说，是可用的
+    // TODO 注释： 那么待会儿， 这个 MRAppMaster 还会发送命令让 NodeManager 去启动。
+    // TODO 注释： 如果 NodeManager 接收到这个请求，但是发现这个本身资源不够了，返回一个失败的响应
+    // TODO 注释： 然后 MRAppMaster 重新申请
     int completedMaps = getJob().getCompletedMaps();
     int completedTasks = completedMaps + getJob().getCompletedReduces();
     if ((lastCompletedTasks != completedTasks) ||
@@ -300,6 +338,7 @@ public class RMContainerAllocator extends RMContainerRequestor
       boolean reducerPreempted = preemptReducesIfNeeded();
 
       if (!reducerPreempted) {
+        // TODO 注释： 如果此心跳没有减速器抢占发生，则仅计划新的减速器
         // Only schedule new reducers if no reducer preemption happens for
         // this heartbeat
         scheduleReduces(getJob().getTotalMaps(), completedMaps,
@@ -374,13 +413,19 @@ public class RMContainerAllocator extends RMContainerRequestor
 
   protected synchronized void handleEvent(ContainerAllocatorEvent event) {
     recalculateReduceSchedule = true;
+    /*************************************************
+     * TODO 马中华 https://blog.csdn.net/zhongqi2513
+     *  注释： Container 申请请求
+     */
     if (event.getType() == ContainerAllocator.EventType.CONTAINER_REQ) {
       ContainerRequestEvent reqEvent = (ContainerRequestEvent) event;
       boolean isMap = reqEvent.getAttemptID().getTaskId().getTaskType().
           equals(TaskType.MAP);
+      // TODO 注释： 给 MapTask 申请 Container
       if (isMap) {
         handleMapContainerRequest(reqEvent);
       } else {
+        // TODO 注释： 给 ReduceTask 申请 Container
         handleReduceContainerRequest(reqEvent);
       }
       
@@ -457,6 +502,7 @@ public class RMContainerAllocator extends RMContainerRequestor
             PRIORITY_REDUCE, reduceNodeLabelExpression));
       } else {
         //reduces are added to pending queue and are slowly ramped up
+        // TODO 注释： 加入等待队列，最终会将pendingReduces中的请求移动到scheduledRequests中;
         pendingReduces.add(new ContainerRequest(reqEvent,
             PRIORITY_REDUCE, reduceNodeLabelExpression));
       }
@@ -498,11 +544,13 @@ public class RMContainerAllocator extends RMContainerRequestor
     }
 
     if(mapContainerRequestAccepted) {
+      // TODO 注释： 内存 和 cpu 配置
       // set the resources
       reqEvent.getCapability().setMemorySize(
           mapResourceRequest.getMemorySize());
       reqEvent.getCapability().setVirtualCores(
           mapResourceRequest.getVirtualCores());
+      // TODO 注释： 将请求加入调度队列
       scheduledRequests.addMap(reqEvent); //maps are immediately scheduled
     } else {
       String diagMsg = "The required MAP capability is more than the " +
@@ -790,6 +838,10 @@ public class RMContainerAllocator extends RMContainerRequestor
      * to contact the RM.
      */
     try {
+      /*************************************************
+       * TODO 马中华 https://blog.csdn.net/zhongqi2513
+       *  注释：  MRAppMaster 向 RM 申请 Container
+       */
       response = makeRemoteRequest();
       // Reset retry count if no exception occurred.
       retrystartTime = System.currentTimeMillis();
@@ -1058,6 +1110,7 @@ public class RMContainerAllocator extends RMContainerRequestor
       new HashMap<String, LinkedList<TaskAttemptId>>();
     private final Map<String, LinkedList<TaskAttemptId>> mapsRackMapping = 
       new HashMap<String, LinkedList<TaskAttemptId>>();
+    // TODO 注释： 存储 MapTask 或者 ReduceTask 的 container 申请请求
     @VisibleForTesting
     final Map<TaskAttemptId, ContainerRequest> maps =
       new LinkedHashMap<TaskAttemptId, ContainerRequest>();
@@ -1260,7 +1313,10 @@ public class RMContainerAllocator extends RMContainerRequestor
           continue;
         }
       }
-
+      /*************************************************
+       * TODO 马中华 https://blog.csdn.net/zhongqi2513
+       *  注释： 分配 Container，维护了task的attemptid和container的关系
+       */
       assignContainers(allocatedContainers);
        
       // release container if we could not assign it 
@@ -1324,7 +1380,10 @@ public class RMContainerAllocator extends RMContainerRequestor
           it.remove();
         }
       }
-
+      /*************************************************
+       * TODO 马中华 https://blog.csdn.net/zhongqi2513
+       *  注释： 考虑数据本地性
+       */
       assignMapsWithLocality(allocatedContainers);
     }
     
@@ -1419,6 +1478,7 @@ public class RMContainerAllocator extends RMContainerRequestor
             TaskAttemptId tId = list.removeFirst();
             if (maps.containsKey(tId)) {
               ContainerRequest assigned = maps.remove(tId);
+              //todo 维护了task的attemptid和container的关系
               containerAssigned(allocated, assigned);
               it.remove();
               JobCounterUpdateEvent jce =
@@ -1497,12 +1557,15 @@ public class RMContainerAllocator extends RMContainerRequestor
   class AssignedRequests {
     private final Map<ContainerId, TaskAttemptId> containerToAttemptMap =
       new HashMap<ContainerId, TaskAttemptId>();
+    //todo maptasks对应的Container
     @VisibleForTesting
     final LinkedHashMap<TaskAttemptId, Container> maps =
       new LinkedHashMap<TaskAttemptId, Container>();
+    //todo reducetasks对应的Container
     @VisibleForTesting
     final LinkedHashMap<TaskAttemptId, Container> reduces =
       new LinkedHashMap<TaskAttemptId, Container>();
+    //todo preemption： 抢占; 先发制人; 先占; 先买权; 优先;
     @VisibleForTesting
     final Set<TaskAttemptId> preemptionWaitingReduces =
       new HashSet<TaskAttemptId>();

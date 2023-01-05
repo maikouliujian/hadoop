@@ -28,6 +28,7 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.yarn.exceptions.YarnRuntimeException;
 import org.apache.hadoop.yarn.factories.RecordFactory;
 
+//todo 通过反射实例化对象
 @Private
 public class RecordFactoryPBImpl implements RecordFactory {
 

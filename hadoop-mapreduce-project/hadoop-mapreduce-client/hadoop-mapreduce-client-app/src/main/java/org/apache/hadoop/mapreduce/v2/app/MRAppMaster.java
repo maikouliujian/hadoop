@@ -275,16 +275,28 @@ public class MRAppMaster extends CompositeService {
         new TaskAttemptFinishingMonitor(eventHandler);
     return monitor;
   }
-
+  /*************************************************
+   * TODO 马中华 https://blog.csdn.net/zhongqi2513
+   *  注释： 启动了很多的各种 Service
+   *  1、ResourceManager NodeManager
+   */
   @Override
   protected void serviceInit(final Configuration conf) throws Exception {
     // create the job classloader if enabled
     createJobClassLoader(conf);
 
     initJobCredentialsAndUGI(conf);
-
+    /*************************************************
+     * TODO 马中华 https://blog.csdn.net/zhongqi2513
+     *  注释： AsyncDispatcher
+     */
     dispatcher = createDispatcher();
     addIfService(dispatcher);
+    /*************************************************
+     * TODO 马中华 https://blog.csdn.net/zhongqi2513
+     *  注释： TaskAttemptFinishingMonitor
+     *  如果 TaskAttempt 超时了，则注销自己，然后清理 Container，调度一个新的 TaskAttempt 执行
+     */
     taskAttemptFinishingMonitor = createTaskAttemptFinishingMonitor(dispatcher.getEventHandler());
     addIfService(taskAttemptFinishingMonitor);
     context = new RunningAppContext(conf, taskAttemptFinishingMonitor);
@@ -298,6 +310,7 @@ public class MRAppMaster extends CompositeService {
     newApiCommitter = false;
     jobId = MRBuilderUtils.newJobId(appAttemptID.getApplicationId(),
         appAttemptID.getApplicationId().getId());
+    // TODO 注释： reduceTask 个数
     int numReduceTasks = conf.getInt(MRJobConfig.NUM_REDUCES, 0);
     if ((numReduceTasks > 0 && 
         conf.getBoolean("mapred.reducer.new-api", false)) ||
@@ -308,12 +321,16 @@ public class MRAppMaster extends CompositeService {
     }
     
     boolean copyHistory = false;
+    /*************************************************
+     * TODO 马中华 https://blog.csdn.net/zhongqi2513
+     *  注释： FileOutputCommitter
+     */
     committer = createOutputCommitter(conf);
     try {
       String user = UserGroupInformation.getCurrentUser().getShortUserName();
       Path stagingDir = MRApps.getStagingAreaDir(conf, user);
       FileSystem fs = getFileSystem(conf);
-
+      // TODO 注释： 获取 FileSystem 中的 staging_dir 中的各种文件
       boolean stagingExists = fs.exists(stagingDir);
       Path startCommitFile = MRApps.getStartJobCommitFile(conf, user, jobId);
       boolean commitStarted = fs.exists(startCommitFile);
@@ -339,6 +356,7 @@ public class MRAppMaster extends CompositeService {
             " is last retry: " + isLastAMRetry +
             " because a commit was started.");
         copyHistory = true;
+        // TODO 注释： jobState  = SUCCEEDED
         if (commitSuccess) {
           shutDownMessage =
               "Job commit succeeded in a prior MRAppMaster attempt " +
@@ -369,12 +387,14 @@ public class MRAppMaster extends CompositeService {
     }
 
     if (errorHappenedShutDown) {
+      // TODO 注释： 注册事件
       NoopEventHandler eater = new NoopEventHandler();
       //We do not have a JobEventDispatcher in this path
       dispatcher.register(JobEventType.class, eater);
-
+      // TODO 注释： 注册事件
       EventHandler<JobHistoryEvent> historyService = null;
       if (copyHistory) {
+        // TODO 注释： JobHistoryEventHandler
         historyService = 
           createJobHistoryHandler(context);
         dispatcher.register(org.apache.hadoop.mapreduce.jobhistory.EventType.class,
@@ -383,7 +403,7 @@ public class MRAppMaster extends CompositeService {
         dispatcher.register(org.apache.hadoop.mapreduce.jobhistory.EventType.class,
             eater);
       }
-
+      // TODO 注释： StagingDirCleaningService
       if (copyHistory) {
         // Now that there's a FINISHING state for application on RM to give AMs
         // plenty of time to clean up after unregister it's safe to clean staging
@@ -393,7 +413,16 @@ public class MRAppMaster extends CompositeService {
         // deletes staging directory.
         addService(createStagingDirCleaningService());
       }
-
+      /*************************************************
+       * TODO 马中华 https://blog.csdn.net/zhongqi2513
+       *  注释： 重点1、ContainerAllocator
+       *  1、ContainerAllocatorRouter（内部是：RMContainerAllocator）  是一个 service
+       *      构造方法
+       *      serviceInit()
+       *      serviceStart()
+       *  2、ContainerAllocatorRouter 是一个 EventHandler
+       *      handle 方法： 只要某个地方提交了这种事件： ContainerAllocator.EventType
+       */
       // service to allocate containers from RM (if non-uber) or to fake it (uber)
       containerAllocator = createContainerAllocator(null, context);
       addIfService(containerAllocator);
@@ -407,26 +436,40 @@ public class MRAppMaster extends CompositeService {
         // component creates a JobHistoryEvent in the meanwhile, it will be just be
         // queued inside the JobHistoryEventHandler 
         addIfService(historyService);
-
+        // TODO 注释： JobHistoryCopyService
         JobHistoryCopyService cpHist = new JobHistoryCopyService(appAttemptID,
             dispatcher.getEventHandler());
         addIfService(cpHist);
       }
     } else {
-
+      /*************************************************
+       * TODO 马中华 https://blog.csdn.net/zhongqi2513
+       *  注释： MRClientService
+       *  这个服务是用于给 JobClient 提供状态侦听服务的
+       */
       //service to handle requests from JobClient
       clientService = createClientService(context);
       // Init ClientService separately so that we stop it separately, since this
       // service needs to wait some time before it stops so clients can know the
       // final states
       clientService.init(conf);
-      
+      /*************************************************
+       * TODO 马中华 https://blog.csdn.net/zhongqi2513
+       *  注释： MRClientService
+       *  这个服务是用于给 JobClient 提供状态侦听服务的
+       */
       containerAllocator = createContainerAllocator(clientService, context);
-      
+      /*************************************************
+       * TODO 马中华 https://blog.csdn.net/zhongqi2513
+       *  注释： CommitterEventHandler
+       */
       //service to handle the output committer
       committerEventHandler = createCommitterEventHandler(context, committer);
       addIfService(committerEventHandler);
-
+      /*************************************************
+       * TODO 马中华 https://blog.csdn.net/zhongqi2513
+       *  注释： NoopAMPreemptionPolicy
+       */
       //policy handling preemption requests from RM
       callWithJobClassLoader(conf, new Action<Void>() {
         public Void call(Configuration conf) {
@@ -435,34 +478,59 @@ public class MRAppMaster extends CompositeService {
           return null;
         }
       });
-
+      /*************************************************
+       * TODO 马中华 https://blog.csdn.net/zhongqi2513
+       *  注释： TaskAttemptListenerImpl
+       *  负责 MRAppMaster 和 YarnChild 之间的通信
+       *  1、给 YarnChild 提供 RPC 服务
+       *  2、检查 YarnChild 的心跳是否超时
+       */
       //service to handle requests to TaskUmbilicalProtocol
       taskAttemptListener = createTaskAttemptListener(context, preemptionPolicy);
       addIfService(taskAttemptListener);
 
+      /*************************************************
+       * TODO 马中华 https://blog.csdn.net/zhongqi2513
+       *  注释： JobHistoryEventHandler
+       */
       //service to log job history events
       EventHandler<JobHistoryEvent> historyService = 
         createJobHistoryHandler(context);
       //todo 注册
       dispatcher.register(org.apache.hadoop.mapreduce.jobhistory.EventType.class,
           historyService);
-
+      /*************************************************
+       * TODO 马中华 https://blog.csdn.net/zhongqi2513
+       *  注释： JobEventDispatcher 是一个 EventHandler
+       */
       this.jobEventDispatcher = new JobEventDispatcher();
 
+      /*************************************************
+       * TODO 马中华 https://blog.csdn.net/zhongqi2513
+       *  注释： 注册 事件 和 事件处理器
+       */
       //register the event dispatchers
       dispatcher.register(JobEventType.class, jobEventDispatcher);
       dispatcher.register(TaskEventType.class, new TaskEventDispatcher());
       dispatcher.register(TaskAttemptEventType.class, 
           new TaskAttemptEventDispatcher());
       dispatcher.register(CommitterEventType.class, committerEventHandler);
-
+      /*************************************************
+       * TODO 马中华 https://blog.csdn.net/zhongqi2513
+       *  注释： DefaultSpeculator
+       *  如果启用了推测执行，则创建推测执行器
+       *  mapreduce.map.speculative = true 或者 mapreduce.reduce.speculative = true
+       */
       if (conf.getBoolean(MRJobConfig.MAP_SPECULATIVE, false)
           || conf.getBoolean(MRJobConfig.REDUCE_SPECULATIVE, false)) {
         //optional service to speculate on task attempts' progress
         speculator = createSpeculator(conf, context);
         addIfService(speculator);
       }
-
+      /*************************************************
+       * TODO 马中华 https://blog.csdn.net/zhongqi2513
+       *  注释： SpeculatorEventDispatcher
+       */
       speculatorEventDispatcher = new SpeculatorEventDispatcher(conf);
       dispatcher.register(Speculator.EventType.class,
           speculatorEventDispatcher);
@@ -473,12 +541,20 @@ public class MRAppMaster extends CompositeService {
       // cleaner BEFORE the ContainerAllocator so that on shut-down,
       // ContainerAllocator unregisters first and then the staging-dir cleaner
       // deletes staging directory.
+
+      /*************************************************
+       * TODO 马中华 https://blog.csdn.net/zhongqi2513
+       *  注释： StagingDirCleaningService
+       */
       addService(createStagingDirCleaningService());
 
       // service to allocate containers from RM (if non-uber) or to fake it (uber)
       addIfService(containerAllocator);
       dispatcher.register(ContainerAllocator.EventType.class, containerAllocator);
-
+      /*************************************************
+       * TODO 马中华 https://blog.csdn.net/zhongqi2513
+       *  注释：重点2 ContainerLauncherRouter 负责 MRAppMaster 去启动 MapTask 或者 ReduceTask 的 Container
+       */
       // corresponding service to launch allocated containers via NodeManager
       containerLauncher = createContainerLauncher(context);
       addIfService(containerLauncher);
@@ -492,6 +568,11 @@ public class MRAppMaster extends CompositeService {
       // queued inside the JobHistoryEventHandler 
       addIfService(historyService);
     }
+
+    /*************************************************
+     * TODO 马中华 https://blog.csdn.net/zhongqi2513
+     *  注释：
+     */
     super.serviceInit(conf);
   } // end of init()
   
@@ -956,6 +1037,7 @@ public class MRAppMaster extends CompositeService {
       implements ContainerAllocator, RMHeartbeatHandler {
     private final ClientService clientService;
     private final AppContext context;
+    // TODO 注释： 真正的功能实现者  =  RMContainerAllocator
     private ContainerAllocator containerAllocator;
 
     ContainerAllocatorRouter(ClientService clientService,
@@ -972,10 +1054,15 @@ public class MRAppMaster extends CompositeService {
         this.containerAllocator = new LocalContainerAllocator(
             this.clientService, this.context, nmHost, nmPort, nmHttpPort
             , containerID);
+        /*************************************************
+         * TODO 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释： 非常重要的组件： 用来申请 Container
+         */
       } else {
         this.containerAllocator = new RMContainerAllocator(
             this.clientService, this.context, preemptionPolicy);
       }
+      // TODO 注释： containerAllocator 的初始化和启动
       ((Service)this.containerAllocator).init(getConfig());
       ((Service)this.containerAllocator).start();
       super.serviceStart();
@@ -1033,6 +1120,10 @@ public class MRAppMaster extends CompositeService {
         ((LocalContainerLauncher) this.containerLauncher)
                 .setEncryptedSpillKey(encryptedSpillKey);
       } else {
+        /*************************************************
+         * TODO 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释： 启动 ContainerLauncherImpl
+         */
         this.containerLauncher = new ContainerLauncherImpl(context);
       }
       ((Service)this.containerLauncher).init(getConfig());
@@ -1677,6 +1768,7 @@ public class MRAppMaster extends CompositeService {
       ShutdownHookManager.get().addShutdownHook(
         new MRAppMasterShutdownHook(appMaster), SHUTDOWN_HOOK_PRIORITY);
       JobConf conf = new JobConf(new YarnConfiguration());
+      // TODO 注释： job.xml 文件
       conf.addResource(new Path(MRJobConfig.JOB_CONF_FILE));
       
       MRWebAppUtil.initialize(conf);
@@ -1685,10 +1777,14 @@ public class MRAppMaster extends CompositeService {
       if (systemPropsToLog != null) {
         LOG.info(systemPropsToLog);
       }
-
+      // TODO 注释： 系统名称和 JobName
       String jobUserName = System
           .getenv(ApplicationConstants.Environment.USER.name());
       conf.set(MRJobConfig.USER_NAME, jobUserName);
+      /*************************************************
+       * TODO 马中华 https://blog.csdn.net/zhongqi2513
+       *  注释： 内部的核心就是执行 MRAppMaster 的 serviceInit() 和 serviceStart() 方法
+       */
       initAndStartAppMaster(appMaster, conf, jobUserName);
     } catch (Throwable t) {
       LOG.error("Error starting MRAppMaster", t);
@@ -1755,6 +1851,10 @@ public class MRAppMaster extends CompositeService {
       }
     }
     conf.getCredentials().addAll(credentials);
+    /*************************************************
+     * TODO 马中华 https://blog.csdn.net/zhongqi2513
+     *  注释： 启动 MRAppMaster 的 ServiceInit() 方法 和 ServiceStart() 方法
+     */
     appMasterUgi.doAs(new PrivilegedExceptionAction<Object>() {
       @Override
       public Object run() throws Exception {

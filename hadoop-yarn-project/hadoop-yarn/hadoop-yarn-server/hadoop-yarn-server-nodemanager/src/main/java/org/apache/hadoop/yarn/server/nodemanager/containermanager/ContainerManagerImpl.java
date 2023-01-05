@@ -247,7 +247,7 @@ public class ContainerManagerImpl extends CompositeService implements
         createResourceLocalizationService(exec, deletionContext, context,
             metrics);
     addService(rsrcLocalizationSrvc);
-
+    //todo 启动ContainersLauncher组建
     containersLauncher = createContainersLauncher(context, exec);
     addService(containersLauncher);
 
@@ -286,7 +286,9 @@ public class ContainerManagerImpl extends CompositeService implements
             nmMetricsPublisher));
     dispatcher.register(AuxServicesEventType.class, auxiliaryServices);
     dispatcher.register(ContainersMonitorEventType.class, containersMonitor);
+    //todo container启动
     dispatcher.register(ContainersLauncherEventType.class, containersLauncher);
+    //todo container调度
     dispatcher.register(ContainerSchedulerEventType.class, containerScheduler);
 
     addService(dispatcher);
@@ -932,6 +934,9 @@ public class ContainerManagerImpl extends CompositeService implements
 
   /**
    * Start a list of containers on this NodeManager.
+   * todo 这个代码是在nodemanager中执行
+   * // TODO 注释： 启动 Container 的入口！
+   * // TODO 注释： StartContainersRequest 中包含了启动 Task 的必要信息
    */
   @Override
   public StartContainersResponse startContainers(
@@ -947,6 +952,10 @@ public class ContainerManagerImpl extends CompositeService implements
     // container is being started, in particular when the container has not yet
     // been added to the containers map in NMContext.
     synchronized (this.context) {
+      /*************************************************
+       * TODO 马中华 https://blog.csdn.net/zhongqi2513
+       *  注释： 遍历多个 request，在这个 nodemanager 节点上启动多个 Container
+       */
       for (StartContainerRequest request : requests
           .getStartContainerRequests()) {
         ContainerId containerId = null;
@@ -970,7 +979,16 @@ public class ContainerManagerImpl extends CompositeService implements
           }
           performContainerPreStartChecks(nmTokenIdentifier, request,
               containerTokenIdentifier);
+          //todo 启动container
+          /*************************************************
+           * TODO 马中华 https://blog.csdn.net/zhongqi2513
+           *  注释： 启动 Container 的真正内部实现
+           */
           startContainerInternal(containerTokenIdentifier, request);
+          /*************************************************
+           * TODO 马中华 https://blog.csdn.net/zhongqi2513
+           *  注释： 启动成功，则将该 Container 加入成功 Container 队列
+           */
           succeededContainers.add(containerId);
         } catch (YarnException e) {
           failedContainers.put(containerId, SerializedException.newInstance(e));
@@ -1085,7 +1103,10 @@ public class ContainerManagerImpl extends CompositeService implements
     String user = containerTokenIdentifier.getApplicationSubmitter();
 
     LOG.info("Start request for " + containerIdStr + " by user " + user);
-
+    /*************************************************
+     * TODO 马中华 https://blog.csdn.net/zhongqi2513
+     *  注释： 得到当前container的上下文信息
+     */
     ContainerLaunchContext launchContext = request.getContainerLaunchContext();
 
     // Sanity check for local resources
@@ -1107,12 +1128,25 @@ public class ContainerManagerImpl extends CompositeService implements
         YarnServerSecurityUtils.parseCredentials(launchContext);
 
     long containerStartTime = SystemClock.getInstance().getTime();
+    /*************************************************
+     * TODO 马中华 https://blog.csdn.net/zhongqi2513
+     *  注释： 创建 container 对象，开始 NodeManager 上 container 的状态机转换
+     *  container的初始状态为NEW
+     *  todo 这个是存在于NM中用来管理NM自己身上的一个container状态的状态机
+     *  todo 1、NM管理container： Container
+     *  todo 2、RM管理container： RMContainer
+     */
     Container container =
         new ContainerImpl(getConfig(), this.dispatcher,
             launchContext, credentials, metrics, containerTokenIdentifier,
             context, containerStartTime);
+    /*************************************************
+     * TODO 马中华 https://blog.csdn.net/zhongqi2513
+     *  注释： 构建一个 ApplicationId 对象
+     */
     ApplicationId applicationID =
         containerId.getApplicationAttemptId().getApplicationId();
+    // TODO 注释： 将 container 放入 context 的 containers 中
     if (context.getContainers().putIfAbsent(containerId, container) != null) {
       NMAuditLogger.logFailure(user, AuditConstants.START_CONTAINER,
         "ContainerManagerImpl", "Container already running on this node!",
@@ -1130,10 +1164,17 @@ public class ContainerManagerImpl extends CompositeService implements
           // service v.2 is enabled
           FlowContext flowContext =
               getFlowContext(launchContext, applicationID);
-
+          /*************************************************
+           * TODO 马中华 https://blog.csdn.net/zhongqi2513
+           *  注释： 创建 Application 对象
+           *  todo 这个Application是存在于NM中用来管理NM自己身上的一个Application状态的状态机,就是对应MRAppmaster
+           *  todo 1、NM管理Application： Application
+           *  todo 2、RM管理Application： RMApp和RMAppAttemp
+           */
           Application application =
               new ApplicationImpl(dispatcher, user, flowContext,
                   applicationID, credentials, context);
+          // TODO 注释： 如果是该 Application 的第一个 container，则进行一些辅助操作，如启动 log aggregation 服务
           if (context.getApplications().putIfAbsent(applicationID,
               application) == null) {
             LOG.info("Creating a new application reference for app "
@@ -1142,9 +1183,18 @@ public class ContainerManagerImpl extends CompositeService implements
                 containerTokenIdentifier.getLogAggregationContext();
             Map<ApplicationAccessType, String> appAcls =
                 container.getLaunchContext().getApplicationACLs();
+            /*************************************************
+             * TODO 马中华 https://blog.csdn.net/zhongqi2513
+             *  注释： logAggregationContext 放 入context 中共用
+             */
             context.getNMStateStore().storeApplication(applicationID,
                 buildAppProto(applicationID, user, credentials, appAcls,
                     logAggregationContext, flowContext));
+            /*************************************************
+             * TODO 马中华 https://blog.csdn.net/zhongqi2513
+             *  注释： 触发 ApplicationEventType.INIT_APPLICATION 事件类型
+             *  ApplicationEventType.INIT_APPLICATION 事件的 Handler 是： AppInitTransition
+             */
             dispatcher.getEventHandler().handle(new ApplicationInitEvent(
                 applicationID, appAcls, logAggregationContext));
           }
@@ -1174,9 +1224,17 @@ public class ContainerManagerImpl extends CompositeService implements
                 + "flowContext for application " + applicationID);
           }
         }
-
+        /*************************************************
+         * TODO 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释：
+         */
         this.context.getNMStateStore().storeContainer(containerId,
             containerTokenIdentifier.getVersion(), containerStartTime, request);
+        /*************************************************
+         * TODO 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释： 触发 ApplicationEventType.INIT_CONTAINER 事件类型
+         *  事件类型为 INIT_CONTAINER，则处理次事件的 handler 是 InitContainerTransition
+         */
         dispatcher.getEventHandler().handle(
           new ApplicationContainerInitEvent(container));
 

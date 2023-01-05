@@ -95,6 +95,7 @@ public class ContainerLocalizer {
   public static final String FILECACHE = "filecache";
   public static final String APPCACHE = "appcache";
   public static final String USERCACHE = "usercache";
+
   private static final String APPCACHE_CTXT_FMT = "%s.app.cache.dirs";
   private static final String USERCACHE_CTXT_FMT = "%s.user.cache.dirs";
   private static final FsPermission FILECACHE_PERMS =

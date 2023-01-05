@@ -105,11 +105,11 @@ public class AMLauncher implements Runnable {
     containerMgrProxy = getContainerMgrProxy(masterContainerID);
   }
   /*************************************************
-   * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+   * TODO 马中华 https://blog.csdn.net/zhongqi2513
    *  注释： 正儿八经启动 AM 的逻辑！
    */
   private void launch() throws IOException, YarnException {
-    // TODO 注释： 链接对应 NodeManager，其实是获取 rpc 客户端
+    // TODO 注释： 链接 container 对应 NodeManager，其实是获取 rpc 客户端
     connect();
     ContainerId masterContainerID = masterContainer.getId();
     ApplicationSubmissionContext applicationContext =
@@ -117,13 +117,13 @@ public class AMLauncher implements Runnable {
     LOG.info("Setting up container " + masterContainer
         + " for AM " + application.getAppAttemptId());
     /*************************************************
-     * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+     * TODO 马中华 https://blog.csdn.net/zhongqi2513
      *  注释： 构建 ContainerLaunchContext 上下文对象
      */
     ContainerLaunchContext launchContext =
         createAMContainerLaunchContext(applicationContext, masterContainerID);
     /*************************************************
-     * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+     * TODO 马中华 https://blog.csdn.net/zhongqi2513
      *  注释： 构建 request
      */
     StartContainerRequest scRequest =
@@ -133,7 +133,13 @@ public class AMLauncher implements Runnable {
     list.add(scRequest);
     StartContainersRequest allRequests =
         StartContainersRequest.newInstance(list);
-
+    //todo 此时rm作为rpc客户端，向nm rpc服务端发送请求
+    /*************************************************
+     * TODO 马中华 https://blog.csdn.net/zhongqi2513
+     *  注释： 发送 RPC 请求， 要求对应的某个 NodeManager 去启动一个 Container
+     *  这个 Container 启动好了之后要干嘛，具体的信息，都包含在 ContainerLaunchContext 这个上下文对象中
+     *  java MRAppMaster 这个 shell 命令！
+     */
     StartContainersResponse response =
         containerMgrProxy.startContainers(allRequests);
     if (response.getFailedRequests() != null
@@ -320,7 +326,12 @@ public class AMLauncher implements Runnable {
     case LAUNCH:
       try {
         LOG.info("Launching master" + application.getAppAttemptId());
+        //todo 启动container
         launch();
+        //todo 去启动
+        //todo // Register event handler for RmAppAttemptEvents
+        //      rmDispatcher.register(RMAppAttemptEventType.class,
+        //          new ApplicationAttemptEventDispatcher(rmContext));
         handler.handle(new RMAppAttemptEvent(application.getAppAttemptId(),
             RMAppAttemptEventType.LAUNCHED, System.currentTimeMillis()));
       } catch(Exception ie) {

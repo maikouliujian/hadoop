@@ -1311,8 +1311,8 @@ public abstract class Server {
         while (running) {
           SelectionKey key = null;
           try {
-            // TODO_MA 注释： 注册 OP_READ， 从 pendingConnections 中获取刚刚建立链接成功的客户端
-            // TODO_MA 注释： 注册 OP_READ 事件， 读取数据
+            // TODO 注释： 注册 OP_READ， 从 pendingConnections 中获取刚刚建立链接成功的客户端
+            // TODO 注释： 注册 OP_READ 事件， 读取数据
             // consume as many connections as currently queued to avoid
             // unbridled acceptance of connections that starves the select
             int size = pendingConnections.size();
@@ -3174,6 +3174,11 @@ public abstract class Server {
    *  Class, RPC.RpcInvoker)}
    * This parameter has been retained for compatibility with existing tests
    * and usage.
+   * todo server初始化会创建4个线程：
+   * todo 1、listener ： 用来处理accept事件
+   * todo 2、reader ： 用来处理read事件
+   * todo 3、handler ：用来处理数据
+   * todo 4、responder ：用来响应
    */
   @SuppressWarnings("unchecked")
   protected Server(String bindAddress, int port,
@@ -3187,9 +3192,9 @@ public abstract class Server {
     this.portRangeConfig = portRangeConfig;
     this.port = port;
     this.rpcRequestClass = rpcRequestClass;
-    // TODO_MA 注释： Handler 线程的数量
-    // TODO_MA 注释： ResourceManager 通过 yarn.resourcemanager.resource-tracker.client.thread-count 来调整， 默认是 50
-    // TODO_MA 注释： NameNode 通过 dfs.namenode.service.handler.count 来调整，默认是 10
+    // TODO 注释： Handler 线程的数量
+    // TODO 注释： ResourceManager 通过 yarn.resourcemanager.resource-tracker.client.thread-count 来调整， 默认是 50
+    // TODO 注释： NameNode 通过 dfs.namenode.service.handler.count 来调整，默认是 10
     this.handlerCount = handlerCount;
     this.socketSendBufferSize = 0;
     this.serverName = serverName;
@@ -3197,7 +3202,7 @@ public abstract class Server {
     this.maxDataLength = conf.getInt(CommonConfigurationKeys.IPC_MAXIMUM_DATA_LENGTH,
         CommonConfigurationKeys.IPC_MAXIMUM_DATA_LENGTH_DEFAULT);
     if (queueSizePerHandler != -1) {
-      // TODO_MA 注释： callQueue 的最大大小 = Hanlder的线程数量 * 100
+      // TODO 注释： callQueue 的最大大小 = Hanlder的线程数量 * 100
       this.maxQueueSize = handlerCount * queueSizePerHandler;
     } else {
       this.maxQueueSize = handlerCount * conf.getInt(
@@ -3265,7 +3270,7 @@ public abstract class Server {
     // Create the responder here
     /*************************************************
      * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
-     *  注释： 初始化一个 Responder 响应线程
+     *  todo 注释： 初始化一个 Responder 响应线程
      */
     responder = new Responder();
     

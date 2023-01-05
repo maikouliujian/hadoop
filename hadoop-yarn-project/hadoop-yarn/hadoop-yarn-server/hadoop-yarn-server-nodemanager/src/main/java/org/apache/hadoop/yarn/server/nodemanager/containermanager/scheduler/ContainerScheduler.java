@@ -179,6 +179,7 @@ public class ContainerScheduler extends AbstractService implements
   public void handle(ContainerSchedulerEvent event) {
     switch (event.getType()) {
     case SCHEDULE_CONTAINER:
+      //todo 调度container
       scheduleContainer(event.getContainer());
       break;
     // NOTE: Is sent only after container state has changed to PAUSED...
@@ -402,6 +403,7 @@ public class ContainerScheduler extends AbstractService implements
     boolean resourcesAvailable = true;
     while (cIter.hasNext() && resourcesAvailable) {
       Container container = cIter.next();
+      //todo
       if (tryStartContainer(container, force)) {
         cIter.remove();
       } else {
@@ -416,6 +418,7 @@ public class ContainerScheduler extends AbstractService implements
     // call startContainer without checking available resource when force==true
     if (force || resourceAvailableToStartContainer(
         container)) {
+      //todo
       startContainer(container);
       containerStarted = true;
     }
@@ -549,6 +552,7 @@ public class ContainerScheduler extends AbstractService implements
         ExecutionType.OPPORTUNISTIC) {
       this.metrics.startOpportunisticContainer(container.getResource());
     }
+    //todo
     container.sendLaunchEvent();
   }
 

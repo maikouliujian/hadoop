@@ -200,10 +200,16 @@ public abstract class RMContainerRequestor extends RMCommunicator {
     ResourceBlacklistRequest blacklistRequest =
         ResourceBlacklistRequest.newInstance(new ArrayList<String>(blacklistAdditions),
             new ArrayList<String>(blacklistRemovals));
+    // TODO 注释： 申请 Container 的请求
     AllocateRequest allocateRequest =
         AllocateRequest.newInstance(lastResponseID,
           super.getApplicationProgress(), new ArrayList<ResourceRequest>(ask),
           new ArrayList<ContainerId>(release), blacklistRequest);
+    /*************************************************
+     * TODO 马中华 https://blog.csdn.net/zhongqi2513
+     *  注释： MRAppMaster 向 RM 申请 Container
+     *  发送 RPC 请求 向  RM 申请 Container
+     */
     AllocateResponse allocateResponse = scheduler.allocate(allocateRequest);
     lastResponseID = allocateResponse.getResponseId();
     availableResources = allocateResponse.getAvailableResources();

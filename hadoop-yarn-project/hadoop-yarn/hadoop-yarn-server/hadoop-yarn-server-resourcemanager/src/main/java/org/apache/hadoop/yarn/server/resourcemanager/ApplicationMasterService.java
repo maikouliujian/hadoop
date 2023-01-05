@@ -112,6 +112,7 @@ public class ApplicationMasterService extends AbstractService implements
     this.amLivelinessMonitor = rmContext.getAMLivelinessMonitor();
     this.rScheduler = scheduler;
     this.rmContext = rmContext;
+    //todo 处理链：DefaultAMSProcessor是AMSProcessingChain的head
     this.amsProcessingChain = new AMSProcessingChain(new DefaultAMSProcessor());
   }
 
@@ -194,7 +195,7 @@ public class ApplicationMasterService extends AbstractService implements
         SaslRpcServer.AuthMethod.TOKEN.toString());
     /*************************************************
      * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
-     *  注释： 初始化 RPC Server
+     *  todo 注释： 初始化 RPC Server，为am提供服务
      */
     this.server = getServer(rpc, serverConf, masterServiceAddress,
         this.rmContext.getAMRMTokenSecretManager());
@@ -271,6 +272,7 @@ public class ApplicationMasterService extends AbstractService implements
     // Allow only one thread in AM to do registerApp at a time.
     synchronized (lock) {
       AllocateResponse lastResponse = lock.getAllocateResponse();
+      // TODO 注释：  判断是否已经注册
       if (hasApplicationMasterRegistered(applicationAttemptId)) {
         // allow UAM re-register if work preservation is enabled
         ApplicationSubmissionContext appContext =
@@ -287,7 +289,7 @@ public class ApplicationMasterService extends AbstractService implements
           throw new InvalidApplicationMasterRequestException(message);
         }
       }
-
+      // TODO 注释： RM 接收到 AM 的注册请求，同样更新心跳信息
       this.amLivelinessMonitor.receivedPing(applicationAttemptId);
 
       // Setting the response id to 0 to identify if the
@@ -298,6 +300,10 @@ public class ApplicationMasterService extends AbstractService implements
       RegisterApplicationMasterResponse response =
           recordFactory.newRecordInstance(
               RegisterApplicationMasterResponse.class);
+      /*************************************************
+       * TODO 马中华 https://blog.csdn.net/zhongqi2513
+       *  注释： this.amsProcessingChain = new AMSProcessingChain(new DefaultAMSProcessor());
+       */
       this.amsProcessingChain.registerApplicationMaster(
           amrmTokenIdentifier.getApplicationAttemptId(), request, response);
       return response;
@@ -403,7 +409,10 @@ public class ApplicationMasterService extends AbstractService implements
 
     ApplicationAttemptId appAttemptId =
         amrmTokenIdentifier.getApplicationAttemptId();
-
+    /*************************************************
+     * TODO 马中华 https://blog.csdn.net/zhongqi2513
+     *  注释： 接收到 ApplicationMaster 的心跳
+     */
     this.amLivelinessMonitor.receivedPing(appAttemptId);
 
     /* check if its in cache */
@@ -416,6 +425,7 @@ public class ApplicationMasterService extends AbstractService implements
       throw new ApplicationAttemptNotFoundException(message);
     }
     synchronized (lock) {
+      //todo
       AllocateResponse lastResponse = lock.getAllocateResponse();
       if (!hasApplicationMasterRegistered(appAttemptId)) {
         String message =

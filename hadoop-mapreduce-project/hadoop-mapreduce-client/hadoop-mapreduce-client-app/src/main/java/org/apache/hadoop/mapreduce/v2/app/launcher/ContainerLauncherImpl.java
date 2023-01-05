@@ -142,13 +142,17 @@ public class ContainerLauncherImpl extends AbstractService implements
       
       ContainerManagementProtocolProxyData proxy = null;
       try {
-
+        /*************************************************
+         * TODO 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释： 获取与NM通信代理对象
+         */
         proxy = getCMProxy(containerMgrAddress, containerID);
-
+        // TODO 注释： 上下文对象
+        // TODO 注释： 最重要的信息： 启动 JVM 的 shell 命令：  java YarnChild
         // Construct the actual Container
         ContainerLaunchContext containerLaunchContext =
           event.getContainerLaunchContext();
-
+        // TODO 注释： 构建启动 Container 的 Request 请求对象
         // Now launch the actual container
         StartContainerRequest startRequest =
             StartContainerRequest.newInstance(containerLaunchContext,
@@ -156,6 +160,12 @@ public class ContainerLauncherImpl extends AbstractService implements
         List<StartContainerRequest> list = new ArrayList<StartContainerRequest>();
         list.add(startRequest);
         StartContainersRequest requestList = StartContainersRequest.newInstance(list);
+        //todo 启动container
+        /*************************************************
+         * TODO 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释： 启动 MapTask 或者 ReduceTask 的 container
+         *  requestList 对象中，是包含了 ContainerLaunchContext 的。
+         */
         StartContainersResponse response =
             proxy.getContainerManagementProtocol().startContainers(requestList);
         if (response.getFailedRequests() != null
@@ -178,6 +188,10 @@ public class ContainerLauncherImpl extends AbstractService implements
               + port + " returned for " + taskAttemptID);
         }
 
+        /*************************************************
+         * TODO 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释： TaskAttemptEventType.TA_CONTAINER_LAUNCHED
+         */
         // after launching, send launched event to task attempt to move
         // it from ASSIGNED to RUNNING state
         context.getEventHandler().handle(
@@ -261,22 +275,25 @@ public class ContainerLauncherImpl extends AbstractService implements
 
   @Override
   protected void serviceInit(Configuration conf) throws Exception {
+    // TODO 注释： 线程池上限线程数 = 500
     this.limitOnPoolSize = conf.getInt(
         MRJobConfig.MR_AM_CONTAINERLAUNCHER_THREAD_COUNT_LIMIT,
         MRJobConfig.DEFAULT_MR_AM_CONTAINERLAUNCHER_THREAD_COUNT_LIMIT);
     LOG.info("Upper limit on the thread pool size is " + this.limitOnPoolSize);
-
+    // TODO 注释： 初始线程数 = 10
     this.initialPoolSize = conf.getInt(
         MRJobConfig.MR_AM_CONTAINERLAUNCHER_THREADPOOL_INITIAL_SIZE,
         MRJobConfig.DEFAULT_MR_AM_CONTAINERLAUNCHER_THREADPOOL_INITIAL_SIZE);
     LOG.info("The thread pool initial size is " + this.initialPoolSize);
 
     super.serviceInit(conf);
+    // TODO 注释： 最重要的代码，就是这句初始化获取通信协议代理对象
+    //todo ContainerManagementProtocol 是mrappmaster和nodemanager之间的通信协议
     cmProxy = new ContainerManagementProtocolProxy(conf);
   }
 
   protected void serviceStart() throws Exception {
-
+    // TODO 注释： 线程工厂
     ThreadFactory tf = new ThreadFactoryBuilder().setNameFormat(
         "ContainerLauncher #%d").setDaemon(true).build();
 
@@ -387,13 +404,19 @@ public class ContainerLauncherImpl extends AbstractService implements
 
       Container c = getContainer(event);
       switch(event.getType()) {
-
+        /*************************************************
+         * TODO 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释： 启动 Container
+         */
       case CONTAINER_REMOTE_LAUNCH:
         ContainerRemoteLaunchEvent launchEvent
             = (ContainerRemoteLaunchEvent) event;
         c.launch(launchEvent);
         break;
-
+        /*************************************************
+         * TODO 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释： kill Contianer
+         */
       case CONTAINER_REMOTE_CLEANUP:
         c.kill(event.getDumpContainerThreads());
         break;

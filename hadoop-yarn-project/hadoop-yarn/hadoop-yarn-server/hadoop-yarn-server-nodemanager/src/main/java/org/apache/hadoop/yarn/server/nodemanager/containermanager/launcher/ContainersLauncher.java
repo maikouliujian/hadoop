@@ -124,11 +124,15 @@ public class ContainersLauncher extends AbstractService
     Container container = event.getContainer();
     ContainerId containerId = container.getContainerId();
     switch (event.getType()) {
+      /*************************************************
+       * TODO 马中华 https://blog.csdn.net/zhongqi2513
+       *  注释： LAUNCH_CONTAINER 是启动 Container 的事件
+       */
       case LAUNCH_CONTAINER:
         Application app =
           context.getApplications().get(
               containerId.getApplicationAttemptId().getApplicationId());
-
+        //todo 封装一个任务，用来启动jvm yarnchild
         ContainerLaunch launch =
             new ContainerLaunch(context, getConfig(), dispatcher, exec, app,
               event.getContainer(), dirsHandler, containerManager);

@@ -98,7 +98,10 @@ import org.apache.hadoop.yarn.util.AuxiliaryServiceHelper;
 import com.google.common.annotations.VisibleForTesting;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
+/*************************************************
+ * TODO 马中华 https://blog.csdn.net/zhongqi2513
+ *  注释： 用来启动 Container 的一个线程
+ */
 public class ContainerLaunch implements Callable<Integer> {
 
   private static final Logger LOG =
@@ -107,7 +110,10 @@ public class ContainerLaunch implements Callable<Integer> {
   private static final String CONTAINER_PRE_LAUNCH_PREFIX = "prelaunch";
   public static final String CONTAINER_PRE_LAUNCH_STDOUT = CONTAINER_PRE_LAUNCH_PREFIX + ".out";
   public static final String CONTAINER_PRE_LAUNCH_STDERR = CONTAINER_PRE_LAUNCH_PREFIX + ".err";
-
+  /*************************************************
+   * TODO 马中华 https://blog.csdn.net/zhongqi2513
+   *  注释： Container 启动脚本
+   */
   public static final String CONTAINER_SCRIPT =
     Shell.appendScriptExtension("launch_container");
 
@@ -191,17 +197,22 @@ public class ContainerLaunch implements Callable<Integer> {
     if (!validateContainerState()) {
       return 0;
     }
-
+    /*************************************************
+     * TODO 马中华 https://blog.csdn.net/zhongqi2513
+     *  注释： 上下文对象
+     */
     final ContainerLaunchContext launchContext = container.getLaunchContext();
     ContainerId containerID = container.getContainerId();
     String containerIdStr = containerID.toString();
+    // TODO 注释： 获取命令【启动mrappmaster / yarnchild】
     final List<String> command = launchContext.getCommands();
     int ret = -1;
 
     Path containerLogDir;
     try {
+      // TODO 注释： 获取资源
       Map<Path, List<String>> localResources = getLocalizedResources();
-
+      // TODO 注释： 获取用户
       final String user = container.getUser();
       // /////////////////////////// Variable expansion
       // Before the container script gets written out.
@@ -212,6 +223,7 @@ public class ContainerLaunch implements Callable<Integer> {
       containerLogDir =
           dirsHandler.getLogPathForWrite(relativeContainerLogDir, false);
       recordContainerLogDir(containerID, containerLogDir.toString());
+      // TODO 注释： 进行命令拼接
       for (String str : command) {
         // TODO: Should we instead work via symlinks without this grammar?
         newCmds.add(expandEnvironment(str, containerLogDir));
@@ -278,13 +290,23 @@ public class ContainerLaunch implements Callable<Integer> {
       try (DataOutputStream containerScriptOutStream =
                lfs.create(nmPrivateContainerScriptPath,
                    EnumSet.of(CREATE, OVERWRITE))) {
+        /*************************************************
+         * TODO 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释： 净化 Container 的环境
+         */
         // Sanitize the container's environment
         sanitizeEnv(environment, containerWorkDir, appDirs, userLocalDirs,
             containerLogDirs, localResources, nmPrivateClasspathJarDir,
             nmEnvVars);
-
+        /*************************************************
+         * TODO 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释： 准备 Container
+         */
         prepareContainer(localResources, containerLocalDirs);
-
+        /*************************************************
+         * TODO 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释： 写出环境信息
+         */
         // Write out the environment
         exec.writeLaunchEnv(containerScriptOutStream, environment,
             localResources, launchContext.getCommands(),
@@ -299,7 +321,12 @@ public class ContainerLaunch implements Callable<Integer> {
         creds.writeTokenStorageToStream(tokensOutStream);
       }
       // /////////// End of writing out container-tokens
-
+      /*************************************************
+       * TODO 马中华 https://blog.csdn.net/zhongqi2513
+       *  注释： 启动 Container
+       *  1、逻辑上，就是在一个 container 中，启动一个 JVM 进程
+       *  2、物理上： 执行一个 shell 命令： java YarnChild
+       */
       ret = launchContainer(new ContainerStartContext.Builder()
           .setContainer(container)
           .setLocalizedResources(localResources)
@@ -488,6 +515,17 @@ public class ContainerLaunch implements Callable<Integer> {
     if (launchPrep == 0) {
       launchLock.lock();
       try {
+        /*************************************************
+         * TODO 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释： exec = DefaultContainerExecutor
+         *  ContainerLaunch 将 container 运行环境准备好之后，
+         *  触发 ContainerEventType.CONTAINER_LAUNCHED 事件类型，
+         *  LaunchTransition 捕获之后，触发监控 container 的事件(监控 container 所需的物理内存和虚拟内存)，
+         *  使 container 由 LOCALIZED 变为 RUNNING
+         *  -
+         *  触发 ContainerEventType.CONTAINER_LAUNCHED 事件类型之后，继续执行，
+         *  调用 exec.launchContainer 启动 container
+         */
         return exec.launchContainer(ctx);
       } finally {
         launchLock.unlock();

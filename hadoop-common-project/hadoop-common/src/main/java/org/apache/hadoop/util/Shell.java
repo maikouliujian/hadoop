@@ -903,6 +903,7 @@ public abstract class Shell {
 
   /** Run the command. */
   private void runCommand() throws IOException {
+    //todo 启动jvm命令
     ProcessBuilder builder = new ProcessBuilder(getExecString());
     Timer timeOutTimer = null;
     ShellTimeoutTimerTask timeoutTimerTask = null;
@@ -935,6 +936,7 @@ public abstract class Shell {
         process = builder.start();
       }
     } else {
+      //todo 启动jvm
       process = builder.start();
     }
 
@@ -1210,6 +1212,7 @@ public abstract class Shell {
               + StringUtils.join(" ", command));
         }
       }
+      //todo 启动jvm
       this.run();
     }
 

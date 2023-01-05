@@ -1016,6 +1016,9 @@ public class ContainerImpl implements Container {
       }
 
       containerLaunchStartTime = clock.getTime();
+      //todo ContainerManagerImpl 290行注册了事件
+      // dispatcher.register(ContainersLauncherEventType.class, containersLauncher);
+      //todo ContainersLauncherEventType 事件对应的handler为：ContainersLauncher
       dispatcher.getEventHandler().handle(
           new ContainersLauncherEvent(this, launcherEvent));
     }
@@ -1030,6 +1033,7 @@ public class ContainerImpl implements Container {
       dispatcher.getEventHandler()
           .handle(new ContainersLauncherEvent(this, launcherEvent));
     } else {
+      //todo 触发container调度
       dispatcher.getEventHandler().handle(new ContainerSchedulerEvent(this,
           ContainerSchedulerEventType.SCHEDULE_CONTAINER));
     }

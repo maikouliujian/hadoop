@@ -1245,6 +1245,7 @@ public class ResourceManager extends CompositeService
     public void handle(RMAppAttemptEvent event) {
       ApplicationAttemptId appAttemptId = event.getApplicationAttemptId();
       ApplicationId appId = appAttemptId.getApplicationId();
+      //todo 每一个appid都有其对应的状态机
       RMApp rmApp = this.rmContext.getRMApps().get(appId);
       if (rmApp != null) {
         RMAppAttempt rmAppAttempt = rmApp.getRMAppAttempt(appAttemptId);

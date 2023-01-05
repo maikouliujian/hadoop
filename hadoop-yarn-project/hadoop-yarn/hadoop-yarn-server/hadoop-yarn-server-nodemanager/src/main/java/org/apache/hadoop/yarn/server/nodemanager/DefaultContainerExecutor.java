@@ -248,13 +248,21 @@ public class DefaultContainerExecutor extends ContainerExecutor {
     Path tokenDst =
       new Path(containerWorkDir, ContainerLaunch.FINAL_CONTAINER_TOKENS_FILE);
     copyFile(nmPrivateTokensPath, tokenDst, user);
-
+    /*************************************************
+     * TODO 马中华 https://blog.csdn.net/zhongqi2513
+     *  注释： 方法中会执行 bash default_container_executor.sh 命令
+     *  详细命令：
+     *  /bin/bash "/xx/usercache/user/appcache/application_1499422474367_0001/
+     *  container_1499422474367_0001_01_000001/default_container_executor_session.sh"
+     */
     // copy launch script to work dir
     Path launchDst =
         new Path(containerWorkDir, ContainerLaunch.CONTAINER_SCRIPT);
+    //todo 从hdfs上下载相关文件到本地！！！
     copyFile(nmPrivateContainerScriptPath, launchDst, user);
 
     // Create new local launch wrapper script
+    //todo default_container_executor_session.sh
     LocalWrapperScriptBuilder sb = getLocalWrapperScriptBuilder(
         containerIdStr, containerWorkDir); 
 
@@ -284,13 +292,14 @@ public class DefaultContainerExecutor extends ContainerExecutor {
     try {
       setScriptExecutable(launchDst, user);
       setScriptExecutable(sb.getWrapperScriptPath(), user);
-
+      //todo 构建shell执行命令
       shExec = buildCommandExecutor(sb.getWrapperScriptPath().toString(),
           containerIdStr, user, pidFile, container.getResource(),
           new File(containerWorkDir.toUri().getPath()),
           container.getLaunchContext().getEnvironment());
       
       if (isContainerActive(containerId)) {
+        //todo 执行jvm命令
         shExec.execute();
       } else {
         LOG.info("Container " + containerIdStr +

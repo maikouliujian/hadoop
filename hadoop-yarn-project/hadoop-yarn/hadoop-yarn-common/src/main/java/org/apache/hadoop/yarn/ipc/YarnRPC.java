@@ -51,6 +51,7 @@ public abstract class YarnRPC {
       InetSocketAddress addr, Configuration conf,
       SecretManager<? extends TokenIdentifier> secretManager,
       int numHandlers) {
+    //todo protocol为rpc服务的协议
     return getServer(protocol, instance, addr, conf, secretManager, numHandlers,
         null);
   }

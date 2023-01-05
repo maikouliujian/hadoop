@@ -35,7 +35,7 @@ import org.apache.hadoop.yarn.server.resourcemanager.RMContext;
 import org.apache.hadoop.yarn.server.resourcemanager.rmapp.attempt.RMAppAttempt;
 
 /*************************************************
- * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+ * TODO 马中华 https://blog.csdn.net/zhongqi2513
  *  注释：
  *  1、一个是队列 masterEvents（）
  *  2、一个是线程 launcherHandlingThread = LauncherThread 消费队列，执行任务，启动 ApplicatoinMaster
@@ -57,13 +57,13 @@ public class ApplicationMasterLauncher extends AbstractService implements
     super(ApplicationMasterLauncher.class.getName());
     this.context = context;
     /*************************************************
-     * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+     * TODO 马中华 https://blog.csdn.net/zhongqi2513
      *  注释： 初始化一个 LauncherThread
      */
     this.launcherHandlingThread = new LauncherThread();
   }
   /*************************************************
-   * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+   * TODO 马中华 https://blog.csdn.net/zhongqi2513
    *  注释： AMLauncher 内部有一个线程池，这个线程池的目的，就是为每一个 AM 的启动，启动一个专门的线程来负责启动
    */
   @Override
@@ -75,7 +75,7 @@ public class ApplicationMasterLauncher extends AbstractService implements
         .setNameFormat("ApplicationMasterLauncher #%d")
         .build();
     /*************************************************
-     * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+     * TODO 马中华 https://blog.csdn.net/zhongqi2513
      *  注释： 用来启动 ApplicationMaster 的线程池
      */
     launcherPool = new ThreadPoolExecutor(threadCount, threadCount, 1,
@@ -97,7 +97,7 @@ public class ApplicationMasterLauncher extends AbstractService implements
   protected void serviceStart() throws Exception {
 
     /*************************************************
-     * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+     * TODO 马中华 https://blog.csdn.net/zhongqi2513
      *  注释： 启动 LauncherThread
      */
     launcherHandlingThread.start();
@@ -107,7 +107,7 @@ public class ApplicationMasterLauncher extends AbstractService implements
   protected Runnable createRunnableLauncher(RMAppAttempt application, 
       AMLauncherEventType event) {
     /*************************************************
-     * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+     * TODO 马中华 https://blog.csdn.net/zhongqi2513
      *  注释： 创建 AMLauncher
      */
     Runnable launcher =
@@ -117,14 +117,14 @@ public class ApplicationMasterLauncher extends AbstractService implements
   
   private void launch(RMAppAttempt application) {
     /*************************************************
-     * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+     * TODO 马中华 https://blog.csdn.net/zhongqi2513
      *  注释： 创建一个 ApplicationMaster Launcher
      *  将来会通过一个 EventHandler 来执行这个事件：AMLauncherEventType.LAUNCH 的处理
      */
     Runnable launcher = createRunnableLauncher(application, 
         AMLauncherEventType.LAUNCH);
     /*************************************************
-     * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+     * TODO 马中华 https://blog.csdn.net/zhongqi2513
      *  注释： 加入队列
      *  将 Runnable launcher 加入队列，则等待，处理线程 LauncherThread 来处理
      */
@@ -168,15 +168,19 @@ public class ApplicationMasterLauncher extends AbstractService implements
     Runnable launcher = createRunnableLauncher(application, AMLauncherEventType.CLEANUP);
     masterEvents.add(launcher);
   } 
-  
+
+  //todo 如果rm收到一个application：
+  //todo 1、构建一个RMAppImpl状态机来维护此application的状态；
+  //todo 2、提交一个START事件给asyncdispatcher，最终由ApplicationMasterLauncher来执行处理
+  //todo RMAppAttemptImpl ===> eventHandler.handle(new AMLauncherEvent(AMLauncherEventType.LAUNCH, this));
   @Override
-  public synchronized void  handle(AMLauncherEvent appEvent) {
+  public synchronized void handle(AMLauncherEvent appEvent) {
     AMLauncherEventType event = appEvent.getType();
     RMAppAttempt application = appEvent.getAppAttempt();
     switch (event) {
     case LAUNCH:
       /*************************************************
-       * TODO_MA 马中华 https://blog.csdn.net/zhongqi2513
+       * TODO 马中华 https://blog.csdn.net/zhongqi2513
        *  注释： 要通过 ApplicatoinMasterLauncher 来启动一个 ApplicationMaster
        */
       launch(application);

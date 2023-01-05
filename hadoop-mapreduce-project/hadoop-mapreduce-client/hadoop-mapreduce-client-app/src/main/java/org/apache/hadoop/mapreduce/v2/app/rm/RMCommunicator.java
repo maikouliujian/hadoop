@@ -115,11 +115,18 @@ public abstract class RMCommunicator extends AbstractService
 
   @Override
   protected void serviceStart() throws Exception {
+    //todo 注释：  获取一个 MRAppMaster 和 ResourceManager 通信的协议 ApplicationMasterProtocol 代理对象
     scheduler= createSchedulerProxy();
+    // TODO 注释： 获取 Job 的基本信息
     JobID id = TypeConverter.fromYarn(this.applicationId);
     JobId jobId = TypeConverter.toYarn(id);
     job = context.getJob(jobId);
+    // TODO 注释： ApplicationMaster（MRAppMaster） 向 RM 注册！
     register();
+    /*************************************************
+     * TODO 马中华 https://blog.csdn.net/zhongqi2513
+     *  注释： 启用申请心跳的线程
+     */
     startAllocatorThread();
     super.serviceStart();
   }
@@ -149,6 +156,7 @@ public abstract class RMCommunicator extends AbstractService
       serviceAddr = clientService.getBindAddress();
     }
     try {
+      // TODO 注释： 创建一个注册请求对象： RegisterApplicationMasterRequest
       RegisterApplicationMasterRequest request =
         recordFactory.newRecordInstance(RegisterApplicationMasterRequest.class);
       if (serviceAddr != null) {
@@ -158,9 +166,14 @@ public abstract class RMCommunicator extends AbstractService
             .getAMWebappScheme(getConfig())
             + serviceAddr.getHostName() + ":" + clientService.getHttpPort());
       }
+      /*************************************************
+       * TODO 马中华 https://blog.csdn.net/zhongqi2513
+       *  注释： ApplicatoinMaster 向 RM 注册
+       */
       RegisterApplicationMasterResponse response =
         scheduler.registerApplicationMaster(request);
       isApplicationMasterRegistered = true;
+      // TODO 注释： 得到了 RM 能提供的最大资源能力
       maxContainerCapability = response.getMaximumResourceCapability();
       this.context.getClusterInfo().setMaxContainerCapability(
           maxContainerCapability);
@@ -169,6 +182,7 @@ public abstract class RMCommunicator extends AbstractService
       }
       this.applicationACLs = response.getApplicationACLs();
       LOG.info("maxContainerCapability: " + maxContainerCapability);
+      // TODO 注释： 获取到了队列名称
       String queue = response.getQueue();
       LOG.info("queue: " + queue);
       job.setQueueName(queue);
@@ -275,8 +289,13 @@ public abstract class RMCommunicator extends AbstractService
     public void run() {
       while (!stopped.get() && !Thread.currentThread().isInterrupted()) {
         try {
+          // TODO 注释： 默认 1s钟发一次心跳
           Thread.sleep(rmPollInterval);
           try {
+            /*************************************************
+             * TODO 马中华 https://blog.csdn.net/zhongqi2513
+             *  注释： ApplicationMaster 和 ResourceManager 心跳
+             */
             heartbeat();
           } catch (RMContainerAllocationException e) {
             LOG.error("Error communicating with RM: " + e.getMessage() , e);
@@ -286,7 +305,7 @@ public abstract class RMCommunicator extends AbstractService
             continue;
             // TODO: for other exceptions
           }
-
+          //todo 记录心跳事件
           lastHeartbeatTime = context.getClock().getTime();
           executeHeartbeatCallbacks();
         } catch (InterruptedException e) {

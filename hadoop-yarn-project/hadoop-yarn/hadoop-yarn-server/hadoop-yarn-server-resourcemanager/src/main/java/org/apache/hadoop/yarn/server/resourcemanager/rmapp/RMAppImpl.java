@@ -983,6 +983,7 @@ public class RMAppImpl implements RMApp, Recoverable {
         currentAMBlacklistManager = new DisabledBlacklistManager();
       }
     }
+    //todo 创建RMAppAttemptImpl
     RMAppAttempt attempt =
         new RMAppAttemptImpl(appAttemptId, rmContext, scheduler, masterService,
           submissionContext, conf, amReqs, this, currentAMBlacklistManager);

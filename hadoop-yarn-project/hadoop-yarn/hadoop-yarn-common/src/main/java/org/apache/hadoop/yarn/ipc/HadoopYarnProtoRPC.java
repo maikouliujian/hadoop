@@ -54,6 +54,7 @@ public class HadoopYarnProtoRPC extends YarnRPC {
     RpcFactoryProvider.getClientFactory(conf).stopClient(proxy);
   }
 
+
   @Override
   public Server getServer(Class protocol, Object instance,
       InetSocketAddress addr, Configuration conf,
