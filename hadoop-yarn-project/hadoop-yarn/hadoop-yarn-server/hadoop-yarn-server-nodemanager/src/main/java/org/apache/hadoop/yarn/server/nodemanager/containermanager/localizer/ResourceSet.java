@@ -44,8 +44,11 @@ public class ResourceSet {
        LoggerFactory.getLogger(ResourceSet.class);
 
   // resources by localization state (localized, pending, failed)
+
+  //todo 已经被本地化的resource【已经被本地化的资源不会再被本地化】
   private Map<String, Path> localizedResources =
       new ConcurrentHashMap<>();
+  //todo 待被本地化的resource【已经被本地化的资源不在此列表中】
   private Map<LocalResourceRequest, Set<String>> pendingResources =
       new ConcurrentHashMap<>();
   private Set<LocalResourceRequest> resourcesFailedToBeLocalized =
@@ -122,6 +125,7 @@ public class ResourceSet {
    * @param location The path where the resource is localized
    * @return The list of symlinks for the localized resources.
    */
+  //todo resourceLocalized时会被调用
   public Set<String> resourceLocalized(LocalResourceRequest request,
       Path location) {
     Set<String> symlinks = pendingResources.remove(request);
@@ -129,6 +133,7 @@ public class ResourceSet {
       return null;
     } else {
       for (String symlink : symlinks) {
+        //todo 记录已经被本地化的资源
         localizedResources.put(symlink, location);
       }
       return symlinks;

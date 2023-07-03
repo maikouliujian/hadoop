@@ -908,6 +908,7 @@ public class CapacityScheduler extends
       ApplicationPlacementContext placementContext) {
     try {
       writeLock.lock();
+      // TODO 注释： App 上限校验，如果超过上限，则拒绝提交
       if (isSystemAppsLimitReached()) {
         String message = "Maximum system application limit reached,"
             + "cannot accept submission of application: " + applicationId;
@@ -916,11 +917,11 @@ public class CapacityScheduler extends
                 message));
         return;
       }
-
+      // TODO 注释： 处理任务队列问题
       //Could be a potential auto-created leaf queue
       CSQueue queue = getOrCreateQueueFromPlacementContext(applicationId, user,
             queueName, placementContext, false);
-
+      // TODO 注释： 队列不能为空，必须指定队列，默认是 default
       if (queue == null) {
         final String message =
             "Application " + applicationId + " submitted by user " + user
@@ -931,7 +932,10 @@ public class CapacityScheduler extends
                 message));
         return;
       }
-
+      /*************************************************
+       * TODO 马中华 https://blog.csdn.net/zhongqi2513
+       *  注释： 队列必须是叶子节点，否则拒绝
+       */
       if (!(queue instanceof LeafQueue)) {
         String message =
             "Application " + applicationId + " submitted by user : " + user
@@ -975,7 +979,11 @@ public class CapacityScheduler extends
           return;
         }
       }
-
+      /*************************************************
+       * TODO 马中华 https://blog.csdn.net/zhongqi2513
+       *  注释： 处理优先级问题
+       *  优先级高的会优先申请container
+       */
       try {
         priority = workflowPriorityMappingsMgr.mapWorkflowPriorityForApp(
             applicationId, queue, user, priority);
@@ -986,7 +994,10 @@ public class CapacityScheduler extends
             applicationId, RMAppEventType.APP_REJECTED, message));
         return;
       }
-
+      /*************************************************
+       * TODO 马中华 https://blog.csdn.net/zhongqi2513
+       *  注释： 提交 Application 到队列中
+       */
       // Submit to the queue
       try {
         queue.submitApplication(applicationId, user, queueName);
@@ -1000,11 +1011,21 @@ public class CapacityScheduler extends
       }
       // update the metrics
       queue.getMetrics().submitApp(user);
+      // TODO 注释： 生成一个 参与调度的Application 对象： SchedulerApplication
       SchedulerApplication<FiCaSchedulerApp> application =
           new SchedulerApplication<FiCaSchedulerApp>(queue, user, priority);
+      /*************************************************
+       * TODO 马中华 https://blog.csdn.net/zhongqi2513
+       *  注释： SchedulerApplication 在 CapacityScheduler 内进行注册
+       */
       applications.put(applicationId, application);
       LOG.info("Accepted application " + applicationId + " from user: " + user
           + ", in queue: " + queueName);
+      /*************************************************
+       * TODO 马中华 https://blog.csdn.net/zhongqi2513
+       *  注释： RMAppEventType.APP_ACCEPTED
+       *  由 StartAppAttemptTransition 处理 RMAppImpl 的 RMAppEventType.APP_ACCEPTED 事件的状态转换
+       */
       rmContext.getDispatcher().getEventHandler().handle(
           new RMAppEvent(applicationId, RMAppEventType.APP_ACCEPTED));
     } finally {
@@ -1292,11 +1313,16 @@ public class CapacityScheduler extends
     try {
       readLock.lock();
       setLastNodeUpdateTime(Time.now());
+      /*************************************************
+       * TODO 马中华 https://blog.csdn.net/zhongqi2513
+       *  注释： 处理心跳
+       */
       super.nodeUpdate(rmNode);
     } finally {
       readLock.unlock();
     }
-
+    // TODO 注释： 默认情况下是没有启用异步调度的！
+    // TODO 注释： 如果是异步调度，会启动一些异步调度线程 AsyncScheduleThread 来执行调度
     // Try to do scheduling
     if (!scheduleAsynchronously) {
       try {
@@ -1308,7 +1334,10 @@ public class CapacityScheduler extends
         // work
         updateSchedulerHealth(lastNodeUpdateTime, rmNode.getNodeID(),
             CSAssignment.NULL_ASSIGNMENT);
-
+        /*************************************************
+         * TODO 马中华 https://blog.csdn.net/zhongqi2513
+         *  注释： 分配 Container
+         */
         allocateContainersToNode(rmNode.getNodeID(), true);
         ActivitiesLogger.NODE.finishNodeUpdateRecording(activitiesManager,
             rmNode.getNodeID());
@@ -1473,6 +1502,7 @@ public class CapacityScheduler extends
 
       CandidateNodeSet<FiCaSchedulerNode> candidates = getCandidateNodeSet(
           node);
+      //TODO
       CSAssignment assignment = allocateContainersToNode(candidates,
           withNodeHeartbeat);
       // Only check if we can allocate more container on the same node when
@@ -1541,6 +1571,10 @@ public class CapacityScheduler extends
     // 1. Check for reserved applications
     // 2. Schedule if there are no reservations
     RMContainer reservedContainer = node.getReservedContainer();
+    /*************************************************
+     * TODO 马中华 https://blog.csdn.net/zhongqi2513
+     *  注释： 获取应用程序
+     */
     if (reservedContainer != null) {
       FiCaSchedulerApp reservedApplication = getCurrentAttemptForContainer(
           reservedContainer.getContainerId());
@@ -1558,8 +1592,12 @@ public class CapacityScheduler extends
             + reservedApplication.getApplicationId() + " on node: " + node
             .getNodeID());
       }
-
+      //todo 注释【1】选择队列
       LeafQueue queue = ((LeafQueue) reservedApplication.getQueue());
+      /*************************************************
+       * TODO 马中华 https://blog.csdn.net/zhongqi2513
+       *  注释： 【2】分配 Container
+       */
       assignment = queue.assignContainers(getClusterResource(), candidates,
           // TODO, now we only consider limits for parent for non-labeled
           // resources, should consider labeled resources as well.
@@ -1726,6 +1764,7 @@ public class CapacityScheduler extends
     // We have two different logics to handle allocation on single node / multi
     // nodes.
     CSAssignment assignment;
+    //TODO
     if (!multiNodePlacementEnabled) {
       assignment = allocateContainerOnSingleNode(candidates,
           node, withNodeHeartbeat);
@@ -1740,10 +1779,19 @@ public class CapacityScheduler extends
     }
     return assignment;
   }
-
+  /*************************************************
+   * TODO 马中华 https://blog.csdn.net/zhongqi2513
+   *  注释： 如果其他什么组件，在 RM 内部运行，并且提交一个了  SchedulerEvent 给 中央异步调度器：AsyncDispatcher
+   *  去根据事件的类型，找到 EventHandler:  CapacityScheduler
+   */
   @Override
   public void handle(SchedulerEvent event) {
     switch(event.getType()) {
+      /*************************************************
+       * TODO 马中华 https://blog.csdn.net/zhongqi2513
+       *  注释： NodeManager 上线！
+       *  表示集群中增加了一个计算节点，资源调度器收到该事件时需要将新增的资源量添加到可分配资源总量中。
+       */
     case NODE_ADDED:
     {
       NodeAddedSchedulerEvent nodeAddedEvent = (NodeAddedSchedulerEvent)event;
@@ -1752,6 +1800,12 @@ public class CapacityScheduler extends
         nodeAddedEvent.getAddedRMNode());
     }
     break;
+      /*************************************************
+       * TODO 马中华 https://blog.csdn.net/zhongqi2513
+       *  注释： NodeManager 下线！
+       *  表示集群中移除了一个计算节点（可能是节点故障或者管理员主动移除），
+       *  资源调度器收到该事件时需要从可分配资源总量中移除相应的资源量。
+       */
     case NODE_REMOVED:
     {
       NodeRemovedSchedulerEvent nodeRemovedEvent = (NodeRemovedSchedulerEvent)event;
@@ -1782,15 +1836,32 @@ public class CapacityScheduler extends
       updateNodeAttributes(attributeUpdateEvent);
     }
     break;
+      /****************【container的资源调度】*********************************
+       * TODO 马中华 https://blog.csdn.net/zhongqi2513
+       *  注释： NodeManager 节点状态改变 = NM 心跳
+       *  ResourceManager收到NodeManager通过【心跳机制】汇报的信息后，会触发一个NODE_UDDATE事件，
+       *  由于此时可能有新的Container得到释放，因此该事件会触发资源分配。
+       *  也就是说，该事件是所有事件中最重要的事件，它会触发资源调度器最核心的资源分配机制。
+       */
     case NODE_UPDATE:
     {
+      // TODO 注释： NodeUpdateSchedulerEvent 是 SchedulerEvent 的子类
       NodeUpdateSchedulerEvent nodeUpdatedEvent = (NodeUpdateSchedulerEvent)event;
+      // TODO 注释： NM 身上的 Container 的状态会发生变化（正在运行的Container的状态，已经运行完成的Container的列表）
       nodeUpdate(nodeUpdatedEvent.getRMNode());
     }
     break;
+      /*************************************************
+       * TODO 马中华 https://blog.csdn.net/zhongqi2513
+       *  注释： 新提交一个 App
+       *  表示ResourceManager收到一个新的Application。
+       *  通常而言，资源管理器需要为每个Application维护一个独立的数据结构， 以便于统一管理和资源分配。
+       *  资源管理器需将该Application添加到相应的数据结构中。
+       */
     case APP_ADDED:
     {
       AppAddedSchedulerEvent appAddedEvent = (AppAddedSchedulerEvent) event;
+      // TODO 注释： 队列名称
       String queueName = resolveReservationQueueName(appAddedEvent.getQueue(),
           appAddedEvent.getApplicationId(), appAddedEvent.getReservationID(),
           appAddedEvent.getIsAppRecovering());
@@ -1807,6 +1878,11 @@ public class CapacityScheduler extends
       }
     }
     break;
+      /*************************************************
+       * TODO 马中华 https://blog.csdn.net/zhongqi2513
+       *  注释： Application 执行完成
+       *  表示一个Application运行结束（可能成功或者失败），资源管理器需将该Application从相应的数据结构中清除。
+       */
     case APP_REMOVED:
     {
       AppRemovedSchedulerEvent appRemovedEvent = (AppRemovedSchedulerEvent)event;
@@ -1814,6 +1890,13 @@ public class CapacityScheduler extends
         appRemovedEvent.getFinalState());
     }
     break;
+      // TODO 注释： RMApp  RMAppAttempt
+      // TODO 注释： Task     TaskAttempt
+
+      /*************************************************
+       * TODO 马中华 https://blog.csdn.net/zhongqi2513
+       *  注释： RMAppAttempt 注册完成
+       */
     case APP_ATTEMPT_ADDED:
     {
       AppAttemptAddedSchedulerEvent appAttemptAddedEvent =
@@ -1823,6 +1906,10 @@ public class CapacityScheduler extends
         appAttemptAddedEvent.getIsAttemptRecovering());
     }
     break;
+      /*************************************************
+       * TODO 马中华 https://blog.csdn.net/zhongqi2513
+       *  注释： AppAttempt 执行完成
+       */
     case APP_ATTEMPT_REMOVED:
     {
       AppAttemptRemovedSchedulerEvent appAttemptRemovedEvent =
@@ -1832,6 +1919,13 @@ public class CapacityScheduler extends
         appAttemptRemovedEvent.getKeepContainersAcrossAppAttempts());
     }
     break;
+      /*************************************************
+       * TODO 马中华 https://blog.csdn.net/zhongqi2513
+       *  注释： Container 超时处理
+       *  当资源调度器将一个Container分配给某个 Application-Master 后，如果该
+       *  ApplicationMaster 在一定时间间隔内没有使用该Container，
+       *  则资源调度器会对该Container进行（回收后）再分配。  默认 10 分钟
+       */
     case CONTAINER_EXPIRED:
     {
       ContainerExpiredSchedulerEvent containerExpiredEvent =
@@ -1848,6 +1942,10 @@ public class CapacityScheduler extends
       }
     }
     break;
+      /*************************************************
+       * TODO 马中华 https://blog.csdn.net/zhongqi2513
+       *  注释： 释放 Container
+       */
     case RELEASE_CONTAINER:
     {
       RMContainer container = ((ReleaseContainerEvent) event).getContainer();
@@ -1866,6 +1964,10 @@ public class CapacityScheduler extends
       killReservedContainer(container);
     }
     break;
+      /*************************************************
+       * TODO 马中华 https://blog.csdn.net/zhongqi2513
+       *  注释： Container 抢占标记
+       */
     case MARK_CONTAINER_FOR_PREEMPTION:
     {
       ContainerPreemptEvent preemptContainerEvent =

@@ -502,12 +502,14 @@ public class ContainerLocalizer {
       Path base = lfs.makeQualified(
           new Path(new Path(localDirs.get(i), USERCACHE), user));
       // $x/usercache/$user/filecache
+      //todo userFileCacheDir【缓存公共文件的】
       Path userFileCacheDir = new Path(base, FILECACHE);
       usersFileCacheDirs[i] = userFileCacheDir.toString();
       createDir(lfs, userFileCacheDir, FILECACHE_PERMS);
       // $x/usercache/$user/appcache/$appId
       Path appBase = new Path(base, new Path(APPCACHE, appId));
       // $x/usercache/$user/appcache/$appId/filecache
+      //todo 【缓存job文件的】
       Path appFileCacheDir = new Path(appBase, FILECACHE);
       appsFileCacheDirs[i] = appFileCacheDir.toString();
       createDir(lfs, appFileCacheDir, FILECACHE_PERMS);

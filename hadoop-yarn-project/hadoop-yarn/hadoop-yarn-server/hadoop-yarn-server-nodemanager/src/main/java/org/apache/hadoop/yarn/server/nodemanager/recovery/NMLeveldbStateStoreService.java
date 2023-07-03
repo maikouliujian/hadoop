@@ -82,7 +82,7 @@ import java.util.TimerTask;
 
 import static org.fusesource.leveldbjni.JniDBFactory.asString;
 import static org.fusesource.leveldbjni.JniDBFactory.bytes;
-
+//todo NMLeveldbStateStoreService
 public class NMLeveldbStateStoreService extends NMStateStoreService {
 
   public static final org.slf4j.Logger LOG =

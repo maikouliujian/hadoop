@@ -338,8 +338,10 @@ public class ContainerImpl implements Container {
         ContainerEventType.UPDATE_CONTAINER_TOKEN, new UpdateTransition())
 
     // From LOCALIZING State
+              //todo resource 本地化
     .addTransition(ContainerState.LOCALIZING,
         EnumSet.of(ContainerState.LOCALIZING, ContainerState.SCHEDULED),
+        //todo LocalizedTransition
         ContainerEventType.RESOURCE_LOCALIZED, new LocalizedTransition())
     .addTransition(ContainerState.LOCALIZING,
         ContainerState.LOCALIZATION_FAILED,
@@ -1248,6 +1250,7 @@ public class ContainerImpl implements Container {
    * Transition when one of the requested resources for this container
    * has been successfully localized.
    */
+  //todo LocalizedTransition【资源本地化】
   static class LocalizedTransition implements
       MultipleArcTransition<ContainerImpl,ContainerEvent,ContainerState> {
     @SuppressWarnings("unchecked")
@@ -1257,6 +1260,7 @@ public class ContainerImpl implements Container {
       ContainerResourceLocalizedEvent rsrcEvent = (ContainerResourceLocalizedEvent) event;
       LocalResourceRequest resourceRequest = rsrcEvent.getResource();
       Path location = rsrcEvent.getLocation();
+      //todo 获取将要被本地化的resource
       Set<String> syms =
           container.resourceSet.resourceLocalized(resourceRequest, location);
       if (null == syms) {

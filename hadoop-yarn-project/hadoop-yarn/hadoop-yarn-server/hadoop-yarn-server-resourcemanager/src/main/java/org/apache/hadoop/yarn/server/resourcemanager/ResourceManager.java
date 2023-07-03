@@ -500,9 +500,16 @@ public class ResourceManager extends CompositeService
   }
 
   protected ResourceScheduler createScheduler() {
+    /*************************************************
+     * TODO 马中华 https://blog.csdn.net/zhongqi2513
+     *  注释： 默认调度器：
+     *  key = yarn.resourcemanager.scheduler.class
+     *  value = org.apache.hadoop.yarn.server.resourcemanager.scheduler.capacity.CapacityScheduler
+     */
     String schedulerClassName = conf.get(YarnConfiguration.RM_SCHEDULER,
         YarnConfiguration.DEFAULT_RM_SCHEDULER);
     LOG.info("Using Scheduler: " + schedulerClassName);
+    // TODO 注释： 通过反射构建 CapacityScheduler 实例对象
     try {
       Class<?> schedulerClazz = Class.forName(schedulerClassName);
       if (ResourceScheduler.class.isAssignableFrom(schedulerClazz)) {
@@ -1443,6 +1450,7 @@ public class ResourceManager extends CompositeService
    *                   or the RM initialization.
    */
   protected void createAndInitActiveServices(boolean fromActive) {
+    //todo 注释： RMActiveServices 内部包装了 Active RM 应该启动的服务
     activeServices = new RMActiveServices(this);
     activeServices.fromActive = fromActive;
     activeServices.init(conf);

@@ -267,7 +267,9 @@ public class FSDownload implements Callable<Path> {
       throw new IOException("Invalid resource", e);
     }
     FileSystem sourceFs = sCopy.getFileSystem(conf);
+    //todo 获取resource的FileStatus
     FileStatus sStat = sourceFs.getFileStatus(sCopy);
+    //todo 【如果发现remote的文件已经被修改了，那么直接报错！！！】
     if (sStat.getModificationTime() != resource.getTimestamp()) {
       throw new IOException("Resource " + sCopy + " changed on src filesystem" +
           " - expected: " +
@@ -283,7 +285,7 @@ public class FSDownload implements Callable<Path> {
             " public cache.");
       }
     }
-
+    //todo 下载
     downloadAndUnpack(sCopy, destination);
   }
 
@@ -299,6 +301,7 @@ public class FSDownload implements Callable<Path> {
       FileSystem sourceFileSystem = source.getFileSystem(conf);
       FileSystem destinationFileSystem = destination.getFileSystem(conf);
       if (sourceFileSystem.getFileStatus(source).isDirectory()) {
+        //todo hdfs的复制命令
         FileUtil.copy(
             sourceFileSystem, source,
             destinationFileSystem, destination, false,
@@ -392,6 +395,7 @@ public class FSDownload implements Callable<Path> {
   public Path call() throws Exception {
     final Path sCopy;
     try {
+      //todo 下载方法
       sCopy = resource.getResource().toPath();
     } catch (URISyntaxException e) {
       throw new IOException("Invalid resource", e);
@@ -410,17 +414,20 @@ public class FSDownload implements Callable<Path> {
         files.makeQualified(new Path(destinationTmp, sCopy.getName()));
     try {
       if (userUgi == null) {
+        //todo
         verifyAndCopy(dFinal);
       } else {
         userUgi.doAs(new PrivilegedExceptionAction<Void>() {
           @Override
           public Void run() throws Exception {
+            //todo
             verifyAndCopy(dFinal);
             return null;
           }
         });
       }
       changePermissions(dFinal.getFileSystem(conf), dFinal);
+      //todo rename
       files.rename(destinationTmp, destDirPath, Rename.OVERWRITE);
 
       if (LOG.isDebugEnabled()) {

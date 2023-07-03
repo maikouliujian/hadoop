@@ -688,13 +688,13 @@ public class ResourceLocalizationService extends CompositeService
         return appRsrc.get(appId.toString());
     }
   }
-
+   //todo 用户级FILECACHE
   private String getUserFileCachePath(String user) {
     return StringUtils.join(Path.SEPARATOR, Arrays.asList(".",
       ContainerLocalizer.USERCACHE, user, ContainerLocalizer.FILECACHE));
 
   }
-
+  //todo job级FILECACHE
   private String getAppFileCachePath(String user, String appId) {
     return StringUtils.join(Path.SEPARATOR, Arrays.asList(".",
         ContainerLocalizer.USERCACHE, user, ContainerLocalizer.APPCACHE, appId,
@@ -747,6 +747,7 @@ public class ResourceLocalizationService extends CompositeService
     public LocalizerHeartbeatResponse processHeartbeat(LocalizerStatus status) {
       String locId = status.getLocalizerId();
       synchronized (privLocalizers) {
+        //todo
         LocalizerRunner localizer = privLocalizers.get(locId);
         if (null == localizer) {
           // TODO process resources anyway
@@ -757,6 +758,7 @@ public class ResourceLocalizationService extends CompositeService
           response.setLocalizerAction(LocalizerAction.DIE);
           return response;
         }
+        //todo
         return localizer.processHeartbeat(status.getResources());
       }
     }
@@ -780,6 +782,7 @@ public class ResourceLocalizationService extends CompositeService
           (LocalizerResourceRequestEvent)event;
         switch (req.getVisibility()) {
         case PUBLIC:
+          //todo 下载public文件
           publicLocalizer.addResource(req);
           break;
         case PRIVATE:
@@ -905,6 +908,7 @@ public class ResourceLocalizationService extends CompositeService
             // explicitly synchronize pending here to avoid future task
             // completing and being dequeued before pending updated
             synchronized (pending) {
+              //todo 下载文件 FSDownload
               pending.put(queue.submit(new FSDownload(lfs, null, conf,
                   publicDirDestPath, resource, request.getContext().getStatCache())),
                   request);
@@ -1112,6 +1116,7 @@ public class ResourceLocalizationService extends CompositeService
         LocalResource rsrc = stat.getResource();
         LocalResourceRequest req = null;
         try {
+          //todo
           req = new LocalResourceRequest(rsrc);
         } catch (URISyntaxException e) {
           LOG.error(
@@ -1136,6 +1141,7 @@ public class ResourceLocalizationService extends CompositeService
           case FETCH_SUCCESS:
             // notify resource
             try {
+              //todo
               tracker.handle(new ResourceLocalizedEvent(req,
                   stat.getLocalPath().toPath(), stat.getLocalSize()));
             } catch (URISyntaxException e) { }
@@ -1186,6 +1192,7 @@ public class ResourceLocalizationService extends CompositeService
           LocalResourcesTracker tracker = getLocalResourcesTracker(
               next.getVisibility(), user, applicationId);
           if (tracker != null) {
+            //todo
             Path localPath = getPathForLocalization(next, tracker);
             if (localPath != null) {
               rsrcs.add(NodeManagerBuilderUtils.newResourceLocalizationSpec(
@@ -1218,8 +1225,10 @@ public class ResourceLocalizationService extends CompositeService
       LocalResourceVisibility vis = rsrc.getVisibility();
       String cacheDirectory = null;
       if (vis == LocalResourceVisibility.PRIVATE) {// PRIVATE Only
+        //todo PRIVATE Only
         cacheDirectory = getUserFileCachePath(user);
       } else {// APPLICATION ONLY
+        //todo
         cacheDirectory = getAppFileCachePath(user, appId.toString());
       }
       Path dirPath =

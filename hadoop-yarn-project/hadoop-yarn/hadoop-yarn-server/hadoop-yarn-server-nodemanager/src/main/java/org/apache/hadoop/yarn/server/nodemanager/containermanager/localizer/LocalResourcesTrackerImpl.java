@@ -140,6 +140,7 @@ class LocalResourcesTrackerImpl implements LocalResourcesTracker {
       }
       break;
     case REQUEST:
+      //todo 【已经被本地化的资源，不再下载】
       if (rsrc != null && (!isResourcePresent(rsrc))) {
         LOG.info("Resource " + rsrc.getLocalPath()
             + " is missing, localizing it again");
@@ -199,7 +200,7 @@ class LocalResourcesTrackerImpl implements LocalResourcesTracker {
         removeResource(req);
       }
     }
-
+     //todo resource 已经被本地化
     if (event.getType() == ResourceEventType.LOCALIZED) {
       if (rsrc.getLocalPath() != null) {
         try {
@@ -332,6 +333,7 @@ class LocalResourcesTrackerImpl implements LocalResourcesTracker {
    * @param rsrc
    * @return true/false based on resource is present or not
    */
+  //todo 检查resource是否已经存在了
   public boolean isResourcePresent(LocalizedResource rsrc) {
     boolean ret = true;
     if (rsrc.getState() == ResourceState.LOCALIZED) {
@@ -340,6 +342,7 @@ class LocalResourcesTrackerImpl implements LocalResourcesTracker {
       if (!file.exists()) {
         ret = false;
       } else if (dirsHandler != null) {
+        ///todo 检查resource是否已经存在了
         ret = checkLocalResource(rsrc);
       }
     }
@@ -352,6 +355,7 @@ class LocalResourcesTrackerImpl implements LocalResourcesTracker {
    * @param rsrc
    * @return
    */
+  //todo 检查resource是否已经存在了
   @VisibleForTesting
   boolean checkLocalResource(LocalizedResource rsrc) {
     List<String> localDirs = dirsHandler.getLocalDirsForRead();

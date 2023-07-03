@@ -150,7 +150,7 @@ public class DefaultContainerExecutor extends ContainerExecutor {
 
     List<String> localDirs = dirsHandler.getLocalDirs();
     List<String> logDirs = dirsHandler.getLogDirs();
-    
+    //todo 创建各种目录
     createUserLocalDirs(localDirs, user);
     createUserCacheDirs(localDirs, user);
     createAppDirs(localDirs, user, appId);

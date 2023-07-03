@@ -210,7 +210,7 @@ public class ContainerLaunch implements Callable<Integer> {
 
     Path containerLogDir;
     try {
-      // TODO 注释： 获取资源
+      // TODO 注释： 获取已经被本地化过的资源
       Map<Path, List<String>> localResources = getLocalizedResources();
       // TODO 注释： 获取用户
       final String user = container.getUser();

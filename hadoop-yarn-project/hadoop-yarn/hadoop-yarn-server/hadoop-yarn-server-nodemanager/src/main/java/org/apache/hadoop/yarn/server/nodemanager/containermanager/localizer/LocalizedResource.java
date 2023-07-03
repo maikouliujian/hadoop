@@ -223,6 +223,7 @@ public class LocalizedResource implements EventHandler<ResourceEvent> {
    * Sends a {@link LocalizerResourceRequestEvent} to the
    * {@link ResourceLocalizationService}.
    */
+
   @SuppressWarnings("unchecked") // dispatcher not typed
   private static class FetchResourceTransition extends ResourceTransition {
     @Override

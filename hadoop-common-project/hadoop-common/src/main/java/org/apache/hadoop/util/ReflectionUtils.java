@@ -72,6 +72,7 @@ public class ReflectionUtils {
    * @param conf Configuration
    */
   public static void setConf(Object theObject, Configuration conf) {
+
     if (conf != null) {
       if (theObject instanceof Configurable) {
         ((Configurable) theObject).setConf(conf);

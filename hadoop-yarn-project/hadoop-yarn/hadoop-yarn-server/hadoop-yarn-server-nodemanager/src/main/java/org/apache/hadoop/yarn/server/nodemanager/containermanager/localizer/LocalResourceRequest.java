@@ -31,6 +31,7 @@ public class LocalResourceRequest
     extends LocalResource implements Comparable<LocalResourceRequest> {
 
   private final Path loc;
+  //todo 用来校验的
   private final long timestamp;
   private final LocalResourceType type;
   private final LocalResourceVisibility visibility;
