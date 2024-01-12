@@ -151,6 +151,7 @@ public class Path
     String parentPath = parentUri.getPath();
     if (!(parentPath.equals("/") || parentPath.isEmpty())) {
       try {
+        //todo 日志文件校验，如果日志文件是jobmanager.log.2024-01-09 02:29-1 【日志文件中包含空格或者冒号等】会导致异常出现
         parentUri = new URI(parentUri.getScheme(), parentUri.getAuthority(),
                       parentUri.getPath()+"/", null, parentUri.getFragment());
       } catch (URISyntaxException e) {

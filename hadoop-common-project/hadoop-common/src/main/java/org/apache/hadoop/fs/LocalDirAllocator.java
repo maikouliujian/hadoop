@@ -307,6 +307,7 @@ public class LocalDirAllocator {
     private Context confChanged(Configuration conf)
         throws IOException {
       Context ctx = currentContext.get();
+      //todo ！！！！！！
       String newLocalDirs = conf.get(contextCfgItemName);
       if (null == newLocalDirs) {
         throw new IOException(contextCfgItemName + " not configured");
@@ -324,6 +325,7 @@ public class LocalDirAllocator {
             Path tmpDir = new Path(dirStrings[i]);
             if(ctx.localFS.mkdirs(tmpDir)|| ctx.localFS.exists(tmpDir)) {
               try {
+                //todo
                 File tmpFile = tmpDir.isAbsolute()
                     ? new File(ctx.localFS.makeQualified(tmpDir).toUri())
                     : new File(dirStrings[i]);
@@ -343,6 +345,7 @@ public class LocalDirAllocator {
           } //ignore
         }
         ctx.localDirs = dirs.toArray(new Path[dirs.size()]);
+        //todo
         ctx.dirDF = dfList.toArray(new DF[dirs.size()]);
         ctx.savedLocalDirs = newLocalDirs;
 
@@ -411,7 +414,7 @@ public class LocalDirAllocator {
           availableOnDisk[i] = ctx.dirDF[i].getAvailable();
           totalAvailable += availableOnDisk[i];
         }
-
+        //todo ！！！！！！
         if (totalAvailable == 0){
           throw new DiskErrorException("No space available in any of the local directories.");
         }

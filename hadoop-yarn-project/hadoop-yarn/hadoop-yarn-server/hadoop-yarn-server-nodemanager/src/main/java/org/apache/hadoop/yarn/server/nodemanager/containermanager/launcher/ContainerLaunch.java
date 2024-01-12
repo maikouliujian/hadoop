@@ -723,6 +723,8 @@ public class ContainerLaunch implements Callable<Integer> {
     } catch (IOException e) {
       LOG.error("Failed to get tail of the container's error log file", e);
     }
+    //todo 执行container的退出
+    //todo 日志文件格式的异常会导致container无法退出
     this.dispatcher.getEventHandler()
         .handle(new ContainerExitEvent(containerID,
             ContainerEventType.CONTAINER_EXITED_WITH_FAILURE, ret,

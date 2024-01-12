@@ -1858,6 +1858,7 @@ public class RMAppAttemptImpl implements RMAppAttempt, Recoverable {
                 appAttempt.startTime, appAttempt.recoveredFinalState,
                 newTrackingUrl, appAttempt.getDiagnostics(), null,
                 ContainerExitStatus.INVALID, appAttempt.getFinishTime(),
+
                 appAttempt.attemptMetrics.getAggregateAppResourceUsage()
                     .getResourceUsageSecondsMap(),
                 appAttempt.attemptMetrics.getPreemptedResourceSecondsMap(),

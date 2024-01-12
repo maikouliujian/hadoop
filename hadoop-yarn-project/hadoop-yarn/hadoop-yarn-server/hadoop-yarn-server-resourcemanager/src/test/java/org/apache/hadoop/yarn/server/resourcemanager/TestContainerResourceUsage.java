@@ -419,7 +419,7 @@ public class TestContainerResourceUsage {
       rm.drainEvents();
     }
   }
-
+  //todo 计算Container资源使用
   private AggregateAppResourceUsage calculateContainerResourceMetrics(
       RMContainer rmContainer) {
     Resource resource = rmContainer.getContainer().getResource();
